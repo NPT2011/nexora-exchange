@@ -316,6 +316,8 @@ Withdrawals will need 2FA, and new withdrawal addresses will have a security hol
 <button class="li" onclick="soon()">Proof of Reserves</button>
 <button class="li" onclick="soon()">Fee rates</button>
 <a class="li" href="https://t.me/MineXoraOfficial" target="_blank" rel="noopener">Help &amp; support</a></div>
+<button class="btn" id="outBtn" onclick="logout()" style="display:none;width:100%;background:transparent;
+border:1px solid #3A2430;color:var(--dn)">Log out</button>
 </section>
 
 </main>
@@ -331,6 +333,7 @@ stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 1
 <div style="padding:14px 16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
 <button class="btn gold" style="height:40px;font-size:14px" onclick="menu(0);openAuth('up')">Sign up</button>
 <button class="btn dark" style="height:40px;font-size:14px" onclick="menu(0);openAuth('in')">Log in</button></div>
+<div id="duser" style="display:none;padding:0 16px 14px"></div>
 <div id="dmenu"></div>
 </aside>
 <nav class="nav" aria-label="Main" id="nav"></nav>
@@ -602,8 +605,8 @@ if(!ME){top.innerHTML='<div class="card" style="flex-direction:row;align-items:c
 '<div style="font-weight:700">Welcome to Nexora</div><div style="font-size:12px;color:var(--mut)">'+
 'Log in or create your account</div></div></div><div class="g2"><button class="btn gold" onclick="openAuth(\'up\')">'+
 'Sign up</button><button class="btn dark" onclick="openAuth(\'in\')">Log in</button></div>';
-mb.style.display='grid';$('s2fa').textContent='Off';$('sEmail').textContent='—';return;}
-mb.style.display='none';var nm=(ME.user_metadata||{}).full_name||ME.email.split('@')[0],
+mb.style.display='grid';$('duser').style.display='none';$('outBtn').style.display='none';$('s2fa').textContent='Off';$('sEmail').textContent='—';return;}
+mb.style.display='none';$('outBtn').style.display='flex';var nm=(ME.user_metadata||{}).full_name||ME.email.split('@')[0],
 uid=PROF&&PROF.uid?PROF.uid:'—',ok=!!ME.email_confirmed_at;
 top.innerHTML='<div class="card" style="flex-direction:row;align-items:center"><div class="av" style="width:48px;'+
 'height:48px;border-radius:24px;border:2px solid var(--gold)">'+esc(nm[0].toUpperCase())+'</div><div style="flex:1;'+
@@ -613,7 +616,12 @@ top.innerHTML='<div class="card" style="flex-direction:row;align-items:center"><
 (uid!=='—'?'<div class="card"><div class="ct">Your referral link</div><div style="font-size:12.5px;color:var(--soft);'+
 'word-break:break-all" id="myRef">'+esc(SITE+'?ref='+uid)+'</div><button class="btn dark" style="height:38px;'+
 'font-size:13px" onclick="copyRef()">Copy link</button></div>':'')+
-'<button class="btn dark" onclick="logout()">Log out</button>';
+'';
+$('duser').style.display='block';$('duser').innerHTML='<div class="card" style="padding:12px"><div style="font-weight:700">'+
+esc(nm)+'</div><div style="font-size:12px;color:var(--mut)">UID '+esc(uid)+'</div><div class="g2"><button class="btn dark" '+
+'style="height:38px;font-size:13px" onclick="menu(0);go(\'account\')">My account</button><button class="btn" style="height:38px;'+
+'font-size:13px;background:transparent;border:1px solid #3A2430;color:var(--dn)" onclick="menu(0);logout()">Log out</button>'+
+'</div></div>';
 $('sEmail').textContent=ok?'Verified':'Pending';$('sEmail').style.color=ok?'var(--up)':'var(--gold)';
 sb.auth.mfa.listFactors().then(function(l){var on=((l.data||{}).totp||[]).some(function(x){return x.status==='verified';});
 $('s2fa').textContent=on?'On':'Off';$('s2fa').style.color=on?'var(--up)':'var(--gold)';});}
