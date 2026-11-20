@@ -343,6 +343,7 @@ stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/
 <span id="dContract" style="font-size:12px;color:var(--mut2)"></span></div>
 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A9BB8" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
 </button>
+<div class="wbox" id="dIntent" style="display:none"></div>
 <div class="wbox" id="dAddrBox"></div>
 <div id="dInfo" style="padding:0 4px"></div>
 <div id="dNotes" style="font-size:12.5px;color:var(--mut2);line-height:1.7;padding:0 4px"></div>
@@ -357,8 +358,8 @@ stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/
 <button type="button" data-s="other">Someone else</button></div></div>
 <label class="fl" id="dOther" style="display:none">Name of the wallet owner<input class="in" name="sname"></label>
 <button class="btn gold" type="submit">Submit deposit</button>
-<div style="font-size:12px;color:var(--mut2);line-height:1.5">Status shows <b>Processing</b> until our team confirms it on the
-blockchain, then it is added to your Spot wallet.</div>
+<div style="font-size:12px;color:var(--mut2);line-height:1.5">Status shows <b>Processing</b> while our system checks the
+blockchain. When it is confirmed, it is added to your Spot wallet automatically.</div>
 </form>
 </section>
 
@@ -793,8 +794,11 @@ function loginBox(id){$(id).innerHTML='<div class="card" style="text-align:cente
 '<button class="btn gold" onclick="openAuth(\'in\')">Log in</button></div>';}
 function loadNets(cb){if(NETS.length){cb();return;}sb.from('nx_networks').select('*').eq('enabled',true).order('sort')
 .then(function(r){NETS=r.data||[];cb();});}
-function loadWal(cb){sb.from('nx_wallets').select('*').then(function(r){WAL={};(r.data||[]).forEach(function(w){
-WAL[w.account+':'+w.asset]=w;});cb&&cb();});}
+var DINT={};
+function loadWal(cb){Promise.all([sb.from('nx_wallets').select('*'),sb.from('nx_deposit_intents').select('*').eq('status','open')
+.gt('expires_at',new Date().toISOString()).order('id',{ascending:true})]).then(function(r){WAL={};DINT={};
+(r[0].data||[]).forEach(function(w){WAL[w.account+':'+w.asset]=w;});
+(r[1].data||[]).forEach(function(i){DINT[i.asset+':'+i.network]=i;});cb&&cb();});}
 function bal(acc,a){var w=WAL[acc+':'+a];return w?+w.balance:0;}
 function lk(acc,a){var w=WAL[acc+':'+a];return w?+w.locked:0;}
 function walletPage(p){if(!sb||!AREADY)return;if(!ME){var t={wallet:'wList',deposit:'dAddrBox',history:'hAll'}[p];
@@ -841,6 +845,7 @@ $('dNetBtn').onclick=function(){sheet(1,nets(dAsset),dNet,function(n){dNet=n;dra
 function hiAddr(x){if(x.length<12)return esc(x);return '<span style="color:var(--gold)">'+esc(x.slice(0,6))+'</span>'+esc(x.slice(6,-6))+
 '<span style="color:var(--gold)">'+esc(x.slice(-6))+'</span>';}
 function drawDeposit(){dNet=fixNet(dAsset,dNet);var n=netOf(dAsset,dNet),nn=NETN[dNet]||[dNet,''],box=$('dAddrBox');
+if(dAsset==='TRX')nn=['TRX','Tron (TRX)'];
 $('dTitle').textContent='Deposit '+dAsset;document.querySelectorAll('.dA').forEach(function(e){e.textContent=dAsset;});
 $('dNetCode').textContent=nn[0];$('dNetName').textContent=nn[1];
 $('dContract').innerHTML=n.contract?'Contract information <span style="border-bottom:1px dotted #8A9BB8">***'+esc(n.contract.slice(-5))+
@@ -848,7 +853,8 @@ $('dContract').innerHTML=n.contract?'Contract information <span style="border-bo
 if(!n.deposit_address){box.innerHTML='<div class="ct">'+esc(dAsset)+' on '+esc(nn[1]||dNet)+' opens soon</div><div style="'+
 'font-size:12.5px;color:var(--mut2);padding-top:6px">The deposit address will appear here once it is activated.</div>';
 $('dInfo').innerHTML='';$('dNotes').innerHTML='';$('dShare').style.display='none';$('dSentBtn').style.display='none';
-$('dForm').style.display='none';return;}
+$('dForm').style.display='none';$('dIntent').style.display='none';return;}
+drawIntent(n);
 $('dShare').style.display='';$('dSentBtn').style.display='';
 var qr='';if(n.qr_url)qr='<img alt="Deposit QR code" src="'+esc(n.qr_url)+'" style="width:210px;height:210px;border-radius:12px">';
 else{try{var q=qrcode(0,'H');q.addData(n.deposit_address);q.make();qr=q.createSvgTag({cellSize:5,margin:0});}catch(e){}}
@@ -870,11 +876,32 @@ $('dInfo').innerHTML='<div class="irow"><span>Deposit to</span><span>Spot wallet
 '<span>'+cc+' Confirmation(s)</span></div><div class="irow"><span>Unlocked (Withdrawal enabled)</span><span>'+cu+
 ' Confirmation(s)</span></div>';
 $('dNotes').innerHTML='• Send only <b style="color:var(--tx)">'+esc(dAsset)+'</b> on the <b style="color:var(--tx)">'+esc(nn[1]||dNet)+
-'</b> network. Other coins or networks will be lost.<br>• Do not send NFTs to this address.<br>• After sending, tap <b style="color:'+
-'var(--gold)">I have sent it</b> and paste your transaction hash (TxID).';
+'</b> network. Other coins or networks will be lost.<br>• Do not send NFTs to this address.<br>• Send the <b style="color:var(--tx)">exact '+
+'amount</b> shown above. Then tap <b style="color:var(--gold)">I have sent it</b> and paste your transaction hash (TxID).<br>'+
+'• Our system checks the blockchain automatically and adds it to your Spot wallet, usually within a few minutes.';
 document.querySelectorAll('#dSrc button').forEach(function(b){var on=b.dataset.s===dSrc;b.style.background=on?'var(--gold)':
 'transparent';b.style.color=on?'var(--bg)':'var(--mut)';b.style.fontSize='13px';});
 $('dOther').style.display=dSrc==='other'?'flex':'none';}
+function drawIntent(n){var b=$('dIntent'),i=DINT[dAsset+':'+dNet];b.style.display='';
+if(i){var a=String(+i.amount);$('dForm').amount.value=a;b.innerHTML='<div style="font-size:12px;color:var(--mut2)">Send exactly</div>'+
+'<div style="display:flex;align-items:center;gap:10px"><div style="flex:1;font-size:26px;font-weight:700;color:var(--gold);'+
+'word-break:break-all">'+esc(a)+' <span style="font-size:15px;color:var(--tx)">'+esc(dAsset)+'</span></div><button type="button" '+
+'class="ib" aria-label="Copy amount" style="background:#1E2E52;border-radius:24px;width:48px;height:48px;flex-shrink:0" onclick="cp(\''+
+esc(a)+'\')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" '+
+'width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg></button></div>'+
+'<div style="font-size:12.5px;color:var(--mut2);line-height:1.6;padding-top:6px">These last digits are your personal code, so our '+
+'system knows this payment is yours. The amount that <b style="color:var(--tx)">arrives</b> must be exactly this. If your wallet or '+
+'exchange takes a fee from the amount, add the fee. Valid until '+new Date(i.expires_at).toLocaleString()+'.</div>'+
+'<button type="button" class="btn dark" style="margin-top:10px;width:100%" onclick="newIntent()">Change amount</button>';return;}
+b.innerHTML='<div class="ct">Step 1: How much will you deposit?</div><div style="display:flex;gap:8px;padding-top:8px"><input '+
+'class="in" id="dIAmt" inputmode="decimal" placeholder="Min '+fa(n.min_deposit,dAsset)+' '+esc(dAsset)+'" style="flex:1">'+
+'<button type="button" class="btn gold" onclick="getIntent()">Get amount</button></div><div style="font-size:12.5px;color:'+
+'var(--mut2);line-height:1.6;padding-top:6px">You will get an exact amount to send (for example 100.0137). This lets our '+
+'system find your payment and credit it automatically.</div>';}
+function getIntent(){var a=+($('dIAmt').value||0);if(!(a>0)){say('Enter the amount');return;}
+sb.rpc('nx_deposit_intent',{p_asset:dAsset,p_network:dNet,p_amount:a}).then(function(r){if(r.error){say(errText(r.error));return;}
+DINT[dAsset+':'+dNet]={amount:r.data.amount,expires_at:r.data.expires_at,asset:dAsset,network:dNet};drawDeposit();});}
+function newIntent(){delete DINT[dAsset+':'+dNet];$('dForm').amount.value='';drawDeposit();}
 $('dSentBtn').onclick=function(){var f=$('dForm');f.style.display='flex';f.scrollIntoView({behavior:'smooth'});};
 $('dShare').onclick=function(){var n=netOf(dAsset,dNet),t='My Nexora '+dAsset+' ('+dNet+') deposit address: '+n.deposit_address;
 if(navigator.share)navigator.share({title:'Nexora deposit address',text:t}).catch(function(){});else cp(n.deposit_address);};
@@ -883,7 +910,7 @@ function cp(t){try{navigator.clipboard.writeText(t);say('Copied');}catch(e){say(
 $('dForm').onsubmit=function(e){e.preventDefault();var f=new FormData(this),form=this;
 sb.rpc('nx_deposit_submit',{p_asset:dAsset,p_network:dNet,p_amount:+f.get('amount'),p_txid:f.get('txid'),p_source:dSrc,
 p_source_name:f.get('sname')||null}).then(function(r){if(r.error){say(errText(r.error));return;}form.reset();
-say('Deposit submitted. Status: Processing');go('history');});};
+say('Deposit submitted. We are checking the blockchain.');go('history');});};
 function drawWithdraw(){wNet=fixNet(wAsset,wNet);$('wTitle').textContent='Withdraw '+wAsset;
 document.querySelectorAll('.wA').forEach(function(e){e.textContent=wAsset;});
 chips('wCoins',assets(),wAsset,function(a){wAsset=a;drawWithdraw();});
