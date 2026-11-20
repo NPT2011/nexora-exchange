@@ -7,6 +7,7 @@
 <meta name="description" content="Nexora Exchange – USDT crypto exchange. Spot trading, Convert, P2P, Copy Trade and Trading Bot.">
 <meta name="theme-color" content="#0B1426">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230B1426'/%3E%3Cpath d='M32 9l20 11.5v23L32 55 12 43.5v-23z' fill='%23E6B450'/%3E%3Cpath d='M24 40V24l16 16V24' fill='none' stroke='%230B1426' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -187,6 +188,42 @@ is checked and reviewed by our team before listing.</div>
 <button class="btn gold" onclick="go('listing')">Apply for listing</button></div>
 </section>
 
+<!-- AUTH -->
+<section class="pg" id="p-auth">
+<h1 class="h1" id="aTitle">Create account</h1>
+<div class="seg" id="aSeg"><button data-m="up">Sign up</button><button data-m="in">Log in</button></div>
+<form id="aForm" style="display:flex;flex-direction:column;gap:10px">
+<label class="fl" id="fName">Full name<input class="in" name="name" autocomplete="name"></label>
+<label class="fl">Email<input class="in" name="email" type="email" required autocomplete="email"></label>
+<label class="fl" id="fPass">Password<input class="in" name="pass" type="password" minlength="8"
+autocomplete="current-password"></label>
+<label class="fl" id="fRef">Referral code (optional)<input class="in" name="ref" placeholder="e.g. NX123456"></label>
+<label class="fl" id="fCode" style="display:none">Google Authenticator code<input class="in" name="code"
+inputmode="numeric" maxlength="6" placeholder="6-digit code"></label>
+<div id="aMsg" style="font-size:13px;line-height:1.5;display:none;padding:10px 12px;border-radius:10px"></div>
+<button class="btn gold" type="submit" id="aBtn">Sign up</button>
+</form>
+<button type="button" id="aForgot" style="background:none;border:0;color:var(--gold);font-size:13px;padding:6px 0">
+Forgot password?</button>
+<div style="font-size:11.5px;color:var(--mut);line-height:1.5">By continuing you agree to the Nexora Terms of Use.
+Never share your password or 2FA code with anyone, including Nexora staff.</div>
+</section>
+
+<!-- NEW PASSWORD -->
+<section class="pg" id="p-newpass">
+<h1 class="h1">Set new password</h1>
+<form id="npForm" style="display:flex;flex-direction:column;gap:10px">
+<label class="fl">New password (min 8)<input class="in" name="p" type="password" minlength="8" required
+autocomplete="new-password"></label>
+<button class="btn gold" type="submit">Save password</button></form>
+</section>
+
+<!-- 2FA -->
+<section class="pg" id="p-2fa">
+<h1 class="h1">Google Authenticator</h1>
+<div id="tfaBox" style="display:flex;flex-direction:column;gap:12px"></div>
+</section>
+
 <!-- LISTING -->
 <section class="pg" id="p-listing">
 <h1 class="h1">Apply for listing</h1>
@@ -263,18 +300,13 @@ Withdrawals will need 2FA, and new withdrawal addresses will have a security hol
 
 <!-- ACCOUNT -->
 <section class="pg" id="p-account">
-<div class="card" style="flex-direction:row;align-items:center">
-<div class="av" style="width:48px;height:48px;border-radius:24px;border:2px solid var(--gold)">N</div>
-<div style="flex:1"><div style="font-weight:700">Welcome to Nexora</div>
-<div style="font-size:12px;color:var(--mut)">Log in or create your account</div></div></div>
-<div class="g2"><button class="btn gold" onclick="soon()">Sign up</button>
-<button class="btn dark" onclick="soon()">Log in</button></div>
+<div id="acctTop"></div>
 <div class="ref"><div style="flex:1"><div style="font-weight:700;color:var(--gold2)">Refer &amp; Earn</div>
 <div style="font-size:12.5px;color:#D9DFEA">Earn 15–35% of your friends' trading fees</div></div>
 <button class="btn gold" style="height:40px;padding:0 14px;font-size:13px" onclick="soon()">Invite</button></div>
 <div class="sec">Security</div>
-<div class="grp"><button class="li" onclick="soon()">Google Authenticator (2FA)<span class="s">Soon</span></button>
-<button class="li" onclick="soon()">Email verification<span class="s">Soon</span></button>
+<div class="grp"><button class="li" onclick="need()&&go('2fa')">Google Authenticator (2FA)<span class="s" id="s2fa">Off</span></button>
+<button class="li" onclick="need()">Email verification<span class="s" id="sEmail">—</span></button>
 <button class="li" onclick="soon()">Withdrawal whitelist<span class="s">Soon</span></button></div>
 <div class="sec">Trading tools</div>
 <div class="grp"><button class="li" onclick="soon()">API keys (for bots)</button>
@@ -297,8 +329,8 @@ Withdrawals will need 2FA, and new withdrawal addresses will have a security hol
 <button class="ib" aria-label="Close menu" onclick="menu(0)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"
 stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
 <div style="padding:14px 16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
-<button class="btn gold" style="height:40px;font-size:14px" onclick="menu(0);soon()">Sign up</button>
-<button class="btn dark" style="height:40px;font-size:14px" onclick="menu(0);soon()">Log in</button></div>
+<button class="btn gold" style="height:40px;font-size:14px" onclick="menu(0);openAuth('up')">Sign up</button>
+<button class="btn dark" style="height:40px;font-size:14px" onclick="menu(0);openAuth('in')">Log in</button></div>
 <div id="dmenu"></div>
 </aside>
 <nav class="nav" aria-label="Main" id="nav"></nav>
@@ -306,7 +338,30 @@ stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 1
 </div>
 
 <script>
-var LISTING_EMAIL='[YOUR EMAIL]';
+var SB_URL='https://cttfcljydiluvccgivto.supabase.co';
+var SB_KEY='sb_publishable_JEp-0dxsA6_PZF6Hcb5fSQ_LWAevHDL';
+var sb=window.supabase?window.supabase.createClient(SB_URL,SB_KEY):null;
+var ME=null,PROF=null,aMode='up',mfaFactor=null;
+function say(t){var x=document.getElementById('toast');x.textContent=t;x.classList.add('on');clearTimeout(x._h);
+x._h=setTimeout(function(){x.classList.remove('on');x.textContent='Launching soon on Nexora Exchange';},3500);}
+function aMsg(t,ok){var m=document.getElementById('aMsg');if(!t){m.style.display='none';return;}m.style.display='block';
+m.textContent=t;m.style.background=ok?'rgba(14,138,95,.18)':'rgba(200,48,63,.18)';
+m.style.color=ok?'#7FE3BA':'#FF9AA5';}
+function need(){if(ME)return true;openAuth('in');return false;}
+function openAuth(m){setMode(m);location.hash='auth';}
+function setMode(m){aMode=m;var up=m==='up',fp=m==='forgot',code=m==='code';aMsg('');
+document.getElementById('aTitle').textContent=up?'Create account':fp?'Reset password':code?'Two-factor check':'Log in';
+document.querySelectorAll('#aSeg button').forEach(function(b){var on=b.dataset.m===m;
+b.style.background=on?'var(--gold)':'transparent';b.style.color=on?'var(--bg)':'var(--mut)';});
+document.getElementById('aSeg').style.display=code?'none':'grid';
+document.getElementById('fName').style.display=up?'flex':'none';
+document.getElementById('fRef').style.display=up?'flex':'none';
+document.getElementById('fPass').style.display=(fp||code)?'none':'flex';
+document.getElementById('fCode').style.display=code?'flex':'none';
+document.querySelector('#aForm [name=email]').parentNode.style.display=code?'none':'flex';
+document.getElementById('aForgot').style.display=m==='in'?'block':'none';
+document.getElementById('aBtn').textContent=up?'Create account':fp?'Send reset link':code?'Verify':'Log in';
+try{var r=localStorage.getItem('nx_ref');if(r&&up)document.querySelector('#aForm [name=ref]').value=r;}catch(e){}}
 var HOT=['BTC','ETH','BNB','SOL','XRP','DOGE','TON','ADA','TRX','AVAX'];
 var COINS=HOT.slice();
 var STABLE=/^(USDC|FDUSD|TUSD|BUSD|DAI|USDP|EUR|AEUR|EURI|USDE|USD1|PAXG|XUSD|BFUSD)$/;
@@ -368,7 +423,8 @@ function menu(o){$('dr').classList.toggle('on',!!o);$('ov').classList.toggle('on
 function show(){var p=(location.hash||'#home').slice(1);if(!$('p-'+p))p='home';
 document.querySelectorAll('.pg').forEach(function(s){s.classList.toggle('on',s.id==='p-'+p);});
 document.querySelectorAll('.nb').forEach(function(b){b.classList.toggle('on',b.dataset.p===p);});
-window.scrollTo(0,0);if(p==='trade')loadTrade();}
+window.scrollTo(0,0);if(p==='trade')loadTrade();if(p==='2fa')load2fa();
+if(p==='auth'&&!document.getElementById('aTitle').dataset.i){document.getElementById('aTitle').dataset.i=1;setMode(aMode);}}
 window.onhashchange=show;
 
 function rowHtml(c,big){var t=T[c];if(!t)return '';var ch=+t.pct,up=ch>=0;
@@ -422,12 +478,11 @@ $('q').placeholder=mtab==='spot'?'Search coin (BTC, ETH…)':'Search token name 
 if(mtab==='spot')drawMk();else loadDex();};
 
 /* Listing application */
-$('lform').onsubmit=function(e){e.preventDefault();var f=new FormData(this),body='';
-f.forEach(function(v,k){body+=k+': '+v+'\n';});
-location.href='mailto:'+LISTING_EMAIL+'?subject='+encodeURIComponent('Nexora listing application: '+
-f.get('Symbol'))+'&body='+encodeURIComponent(body);
-$('toast').textContent='Thank you! Your application will be reviewed by our team.';soon();
-setTimeout(function(){$('toast').textContent='Launching soon on Nexora Exchange';},2500);};
+$('lform').onsubmit=function(e){e.preventDefault();var f=new FormData(this),form=this,
+row={project:f.get('Project'),symbol:f.get('Symbol'),chain:f.get('Chain'),contract:f.get('Contract'),
+website:f.get('Website'),community:f.get('Community'),email:f.get('Email'),about:f.get('About')};
+if(!sb){say('Connection problem. Please refresh.');return;}sb.from('listing_applications').insert(row).then(function(r){if(r.error){say('Could not submit: '+r.error.message);return;}
+form.reset();say('Thank you! Your application will be checked and reviewed by our team.');});};
 function drawAssets(){$('alist').innerHTML=['USDT','BTC','ETH','SOL'].map(function(c){
 return '<div class="row"><span class="av">'+c[0]+'</span><span class="nm"><b>'+c+'</b></span>'+
 '<span class="pr">0.00<br><span style="font-size:12px;color:var(--mut);font-weight:400">≈ $0.00</span></span></div>';
@@ -510,6 +565,92 @@ el.style.color=up?'var(--up)':'var(--dn)';});
 if(c===cur&&location.hash==='#trade'){head();var m=$('tmid');m.style.color=nw>old?'var(--up)':'var(--dn)';}});};
 mws.onclose=function(){setTimeout(liveTick,3000);};}
 
+
+/* ---------- Accounts: signup, login, email verify, reset, 2FA ---------- */
+try{var rq=new URLSearchParams(location.search).get('ref');if(rq)localStorage.setItem('nx_ref',rq.toUpperCase());}catch(e){}
+document.getElementById('aSeg').onclick=function(e){var b=e.target.closest('button');if(b)setMode(b.dataset.m);};
+document.getElementById('aForgot').onclick=function(){setMode('forgot');};
+var SITE=location.origin+location.pathname;
+document.getElementById('aForm').onsubmit=function(e){e.preventDefault();if(!sb){aMsg('Connection problem. Please refresh the page.');return;}var f=new FormData(this),btn=$('aBtn'),
+email=(f.get('email')||'').trim(),pass=f.get('pass')||'';btn.disabled=true;aMsg('');
+function done(){btn.disabled=false;}
+if(aMode==='up'){if(pass.length<8){aMsg('Password must be at least 8 characters.');done();return;}
+sb.auth.signUp({email:email,password:pass,options:{emailRedirectTo:SITE,data:{full_name:f.get('name')||'',
+ref:(f.get('ref')||'').trim().toUpperCase()}}}).then(function(r){done();
+if(r.error){aMsg(r.error.message);return;}
+aMsg('Account created! We sent a verification link to '+email+'. Open your email and click the link to activate.',1);});}
+else if(aMode==='in'){sb.auth.signInWithPassword({email:email,password:pass}).then(function(r){done();
+if(r.error){aMsg(/confirm/i.test(r.error.message)?'Please verify your email first. Check your inbox for the link.':
+r.error.message);return;}afterLogin();});}
+else if(aMode==='forgot'){sb.auth.resetPasswordForEmail(email,{redirectTo:SITE}).then(function(r){done();
+if(r.error){aMsg(r.error.message);return;}aMsg('Password reset link sent to '+email+'.',1);});}
+else if(aMode==='code'){var code=(f.get('code')||'').trim();sb.auth.mfa.challengeAndVerify({factorId:mfaFactor,code:code})
+.then(function(r){done();if(r.error){aMsg('Wrong code. Try again.');return;}say('Logged in securely');refresh();go('account');});}};
+function afterLogin(){sb.auth.mfa.getAuthenticatorAssuranceLevel().then(function(r){var d=r.data||{};
+if(d.nextLevel==='aal2'&&d.currentLevel!=='aal2'){sb.auth.mfa.listFactors().then(function(l){
+var t=((l.data||{}).totp||[]).filter(function(x){return x.status==='verified';})[0];if(t){mfaFactor=t.id;setMode('code');}
+else{refresh();go('account');}});}else{say('Welcome to Nexora');refresh();go('account');}});}
+document.getElementById('npForm').onsubmit=function(e){e.preventDefault();var p=new FormData(this).get('p');
+sb.auth.updateUser({password:p}).then(function(r){if(r.error){say(r.error.message);return;}say('Password updated');go('account');});};
+
+function refresh(){if(!sb){renderAcct();return;}sb.auth.getUser().then(function(r){ME=(r.data||{}).user||null;
+if(!ME){PROF=null;renderAcct();return;}
+sb.from('profiles').select('*').eq('id',ME.id).maybeSingle().then(function(p){PROF=p.data||null;renderAcct();});});}
+function renderAcct(){var top=$('acctTop'),mb=document.querySelector('#dr .dh').nextElementSibling;
+if(!ME){top.innerHTML='<div class="card" style="flex-direction:row;align-items:center"><div class="av" '+
+'style="width:48px;height:48px;border-radius:24px;border:2px solid var(--gold)">N</div><div style="flex:1">'+
+'<div style="font-weight:700">Welcome to Nexora</div><div style="font-size:12px;color:var(--mut)">'+
+'Log in or create your account</div></div></div><div class="g2"><button class="btn gold" onclick="openAuth(\'up\')">'+
+'Sign up</button><button class="btn dark" onclick="openAuth(\'in\')">Log in</button></div>';
+mb.style.display='grid';$('s2fa').textContent='Off';$('sEmail').textContent='—';return;}
+mb.style.display='none';var nm=(ME.user_metadata||{}).full_name||ME.email.split('@')[0],
+uid=PROF&&PROF.uid?PROF.uid:'—',ok=!!ME.email_confirmed_at;
+top.innerHTML='<div class="card" style="flex-direction:row;align-items:center"><div class="av" style="width:48px;'+
+'height:48px;border-radius:24px;border:2px solid var(--gold)">'+esc(nm[0].toUpperCase())+'</div><div style="flex:1;'+
+'min-width:0"><div style="font-weight:700">'+esc(nm)+'</div><div style="font-size:12px;color:var(--mut);overflow:hidden;'+
+'text-overflow:ellipsis">'+esc(ME.email)+'</div><div style="font-size:12px;color:var(--mut)">UID '+esc(uid)+
+(ok?' · <span style="color:var(--up)">Verified</span>':'')+'</div></div></div>'+
+(uid!=='—'?'<div class="card"><div class="ct">Your referral link</div><div style="font-size:12.5px;color:var(--soft);'+
+'word-break:break-all" id="myRef">'+esc(SITE+'?ref='+uid)+'</div><button class="btn dark" style="height:38px;'+
+'font-size:13px" onclick="copyRef()">Copy link</button></div>':'')+
+'<button class="btn dark" onclick="logout()">Log out</button>';
+$('sEmail').textContent=ok?'Verified':'Pending';$('sEmail').style.color=ok?'var(--up)':'var(--gold)';
+sb.auth.mfa.listFactors().then(function(l){var on=((l.data||{}).totp||[]).some(function(x){return x.status==='verified';});
+$('s2fa').textContent=on?'On':'Off';$('s2fa').style.color=on?'var(--up)':'var(--gold)';});}
+function copyRef(){var t=$('myRef').textContent;try{navigator.clipboard.writeText(t);say('Referral link copied');}
+catch(e){say(t);}}
+function logout(){sb.auth.signOut().then(function(){ME=null;refresh();say('Logged out');go('home');});}
+
+function load2fa(){var box=$('tfaBox');if(!ME){box.innerHTML='';openAuth('in');return;}
+box.innerHTML='<div style="color:var(--mut);font-size:13px">Loading…</div>';
+sb.auth.mfa.listFactors().then(function(l){var all=((l.data||{}).all||[]),
+v=all.filter(function(x){return x.factor_type==='totp'&&x.status==='verified';})[0];
+if(v){box.innerHTML='<div class="card"><div class="ct" style="color:var(--up)">2FA is ON</div><div style="font-size:13px;'+
+'color:var(--mut2);line-height:1.5">Every login will ask for a 6-digit code from Google Authenticator.</div>'+
+'<button class="btn dark" id="tfaOff">Turn off 2FA</button></div>';
+$('tfaOff').onclick=function(){if(!confirmCode(v.id,function(){sb.auth.mfa.unenroll({factorId:v.id}).then(function(){
+say('2FA turned off');load2fa();refresh();});}))return;};return;}
+all.filter(function(x){return x.status!=='verified';}).forEach(function(x){sb.auth.mfa.unenroll({factorId:x.id});});
+box.innerHTML='<div class="card"><div class="ct">Protect your account</div><div style="font-size:13px;color:var(--mut2);'+
+'line-height:1.6">1. Install <b>Google Authenticator</b> on your phone.<br>2. Tap the button below to get your QR code.'+
+'<br>3. Scan it (or enter the key) and type the 6-digit code.</div><button class="btn gold" id="tfaGo">Set up 2FA</button></div>';
+$('tfaGo').onclick=function(){sb.auth.mfa.enroll({factorType:'totp',friendlyName:'Nexora '+Date.now()}).then(function(r){
+if(r.error){say(r.error.message);return;}var d=r.data;box.innerHTML='<div class="card" style="align-items:center;'+
+'text-align:center"><div class="ct">Scan with Google Authenticator</div><div style="background:#fff;padding:10px;'+
+'border-radius:12px"><img alt="2FA QR code" src="'+d.totp.qr_code+'" width="190" height="190"></div><div style="font-size:12px;'+
+'color:var(--mut2)">Or enter this key manually:</div><div style="font-family:monospace;font-size:13px;word-break:break-all;'+
+'color:var(--gold)">'+esc(d.totp.secret)+'</div></div><label class="fl">6-digit code<input class="in" id="tfaCode" '+
+'inputmode="numeric" maxlength="6"></label><button class="btn gold" id="tfaOk">Verify &amp; turn on</button>';
+$('tfaOk').onclick=function(){sb.auth.mfa.challengeAndVerify({factorId:d.id,code:$('tfaCode').value.trim()})
+.then(function(x){if(x.error){say('Wrong code. Try again.');return;}say('2FA is now ON');load2fa();refresh();});};});};});}
+function confirmCode(fid,ok){var box=$('tfaBox');box.innerHTML='<label class="fl">Enter your current 6-digit code to '+
+'turn off 2FA<input class="in" id="offCode" inputmode="numeric" maxlength="6"></label><button class="btn dark" id="offOk">'+
+'Confirm</button>';$('offOk').onclick=function(){sb.auth.mfa.challengeAndVerify({factorId:fid,code:$('offCode').value.trim()})
+.then(function(x){if(x.error){say('Wrong code');return;}ok();});};return false;}
+
+if(sb)sb.auth.onAuthStateChange(function(ev){if(ev==='PASSWORD_RECOVERY'){location.hash='newpass';}
+if(ev==='SIGNED_IN'||ev==='SIGNED_OUT'||ev==='USER_UPDATED')refresh();});
+refresh();
 drawHome();drawAssets();show();loadTickers();setInterval(loadTickers,60000);liveTick();
 </script>
 </body>
