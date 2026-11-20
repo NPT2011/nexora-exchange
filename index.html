@@ -98,6 +98,17 @@ display:flex;align-items:center;gap:12px}
 padding:12px 16px;border-radius:12px;font-size:13px;border:1px solid var(--gold);opacity:0;pointer-events:none;
 transition:opacity .2s;z-index:9;max-width:90%;text-align:center}
 .toast.on{opacity:1}
+.ov{position:fixed;inset:0;background:rgba(3,7,15,.6);z-index:20;opacity:0;pointer-events:none;transition:opacity .2s}
+.ov.on{opacity:1;pointer-events:auto}
+.dr{position:fixed;top:0;bottom:0;left:0;width:84%;max-width:320px;background:var(--bg);border-right:1px solid var(--line);
+z-index:21;transform:translateX(-105%);transition:transform .25s;display:flex;flex-direction:column;overflow-y:auto}
+.dr.on{transform:none}
+.dh{display:flex;align-items:center;justify-content:space-between;padding:14px 12px 10px 16px;border-bottom:1px solid var(--line)}
+.dg{padding:8px 0;border-bottom:1px solid var(--line2)}
+.dt{font-size:11px;font-weight:600;color:var(--mut);letter-spacing:.6px;text-transform:uppercase;padding:8px 18px 4px}
+.di{width:100%;min-height:46px;border:0;background:transparent;color:var(--tx);display:flex;align-items:center;gap:14px;
+padding:0 18px;font-size:14.5px;text-align:left}
+.di svg{color:var(--gold);flex-shrink:0}.di:active{background:var(--card)}
 .soon{font-size:10px;padding:2px 6px;border-radius:6px;background:#2A2410;color:var(--gold)}
 </style>
 </head>
@@ -106,12 +117,17 @@ transition:opacity .2s;z-index:9;max-width:90%;text-align:center}
 <main class="main">
 
 <div class="hd">
+<div style="display:flex;align-items:center;gap:2px">
+<button class="ib" aria-label="Open menu" onclick="menu(1)" style="margin-left:-10px"><svg width="24" height="24"
+viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/>
+</svg></button>
 <div class="brand">
 <svg width="34" height="34" viewBox="0 0 64 64" role="img" aria-label="Nexora logo">
 <path d="M32 3l25 14.5v29L32 61 7 46.5v-29z" fill="none" stroke="#E6B450" stroke-width="5" stroke-linejoin="round"/>
 <path d="M22 42V22l20 20V22" fill="none" stroke="#E8EDF7" stroke-width="6" stroke-linecap="round"
 stroke-linejoin="round"/></svg>
 <div><div class="bn">Nexora</div><div class="bx">EXCHANGE</div></div>
+</div>
 </div>
 <div style="display:flex;gap:4px">
 <button class="ib" aria-label="Search" onclick="go('markets')"><svg width="22" height="22" viewBox="0 0 24 24"
@@ -272,6 +288,19 @@ Withdrawals will need 2FA, and new withdrawal addresses will have a security hol
 
 </main>
 
+<div class="ov" id="ov" onclick="menu(0)"></div>
+<aside class="dr" id="dr" aria-label="Menu">
+<div class="dh"><div class="brand"><svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true">
+<path d="M32 3l25 14.5v29L32 61 7 46.5v-29z" fill="none" stroke="#E6B450" stroke-width="5" stroke-linejoin="round"/>
+<path d="M22 42V22l20 20V22" fill="none" stroke="#E8EDF7" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg><div><div class="bn" style="font-size:18px">Nexora</div><div class="bx">EXCHANGE</div></div></div>
+<button class="ib" aria-label="Close menu" onclick="menu(0)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div style="padding:14px 16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+<button class="btn gold" style="height:40px;font-size:14px" onclick="menu(0);soon()">Sign up</button>
+<button class="btn dark" style="height:40px;font-size:14px" onclick="menu(0);soon()">Log in</button></div>
+<div id="dmenu"></div>
+</aside>
 <nav class="nav" aria-label="Main" id="nav"></nav>
 <div class="toast" id="toast">Launching soon on Nexora Exchange</div>
 </div>
@@ -318,6 +347,24 @@ $('nav').innerHTML=NAV.map(function(n){return '<button class="nb" data-p="'+n[0]
 $('nav').onclick=function(e){var b=e.target.closest('.nb');if(b)go(b.dataset.p);};
 
 function go(p){location.hash=p;}
+var MENU=[['Trade',[['Markets','mk','markets'],['Spot trading','tr','trade'],['Convert','cv'],['P2P trading','p2p'],
+['Futures (soon)','fut']]],
+['Earn & Tools',[['Copy trading','cp'],['Trading bot','bot'],['API keys','key'],['Refer & Earn','ref','account']]],
+['Assets',[['Wallet','wl','wallet'],['Deposit','dep','wallet'],['Withdraw','wd','wallet'],['Transaction history','his']]],
+['Nexora',[['List your token','lst','listing'],['Proof of Reserves','por'],['Fee rates','fee'],
+['Security & 2FA','sec','account'],['Help & support','hlp','tg']]],
+['Community',[['Telegram','tgm','tg'],['X (Twitter)','x','x']]]];
+IC.fut='M3 17l6-6 4 4 8-8M15 7h6v6';IC.key='M15 7a4 4 0 1 1-3.9 5H3v3h3v3h3v-3h2.1A4 4 0 0 1 15 7z';
+IC.his='M12 8v4l3 2M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5';IC.lst='M12 5v14M5 12h14';
+IC.fee='M19 5L5 19M7 7h.01M17 17h.01';IC.sec='M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4';
+IC.hlp='M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01';
+IC.tgm='M21 4L3 11l6 2 2 6 3-4 5 4z';IC.x='M4 4l16 16M20 4L4 20';
+$('dmenu').innerHTML=MENU.map(function(g){return '<div class="dg"><div class="dt">'+g[0]+'</div>'+g[1].map(function(i){
+return '<button class="di" data-g="'+(i[2]||'')+'">'+svg(IC[i[1]],20)+i[0]+'</button>';}).join('')+'</div>';}).join('');
+$('dmenu').onclick=function(e){var b=e.target.closest('.di');if(!b)return;var g=b.dataset.g;menu(0);
+if(g==='tg')window.open('https://t.me/MineXoraOfficial','_blank');else if(g==='x')window.open('https://x.com/MineXoraAsia','_blank');
+else if(g)go(g);else soon();};
+function menu(o){$('dr').classList.toggle('on',!!o);$('ov').classList.toggle('on',!!o);}
 function show(){var p=(location.hash||'#home').slice(1);if(!$('p-'+p))p='home';
 document.querySelectorAll('.pg').forEach(function(s){s.classList.toggle('on',s.id==='p-'+p);});
 document.querySelectorAll('.nb').forEach(function(b){b.classList.toggle('on',b.dataset.p===p);});
