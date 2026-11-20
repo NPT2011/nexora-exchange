@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Nexora Control</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0B1426;--card:#111D36;--card2:#13203A;--line:#1F2D4A;--tx:#E8EDF7;--mut:#8A9BB8;--mut2:#9AA9C4;--gold:#E6B450;
+--up:#3FD39A;--dn:#FF6B7A;--upb:#0E8A5F;--dnb:#C8303F}
+*{box-sizing:border-box}html,body{margin:0;background:#070E1C;color:var(--tx);font-family:Inter,system-ui,sans-serif}
+button{font-family:inherit;cursor:pointer}a{color:var(--gold)}
+.wrap{max-width:900px;margin:0 auto;padding:14px 14px 40px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0 12px}
+.bn{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:19px}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:12px}
+.tab{flex-shrink:0;height:36px;padding:0 14px;border-radius:18px;border:1px solid var(--line);background:var(--card2);
+color:var(--mut2);font-size:13px;font-weight:600}
+.tab.on{background:var(--gold);color:var(--bg);border-color:var(--gold)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.st{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.st b{display:block;font-size:24px;font-family:'Space Grotesk'}.st span{font-size:12px;color:var(--mut2)}
+.in{height:42px;width:100%;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--card2);
+color:var(--tx);font-size:14px;font-family:inherit}
+textarea.in{height:auto;padding:10px}
+.fl{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mut)}
+.btn{height:40px;padding:0 14px;border:0;border-radius:10px;font-weight:600;font-size:13.5px}
+.gold{background:var(--gold);color:var(--bg)}.dark{background:#1E2E52;color:var(--tx)}
+.ok{background:var(--upb);color:#fff}.bad{background:var(--dnb);color:#fff}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.k{font-size:12px;color:var(--mut2)}.v{font-size:13.5px;word-break:break-all}
+.pill{font-size:11px;padding:3px 8px;border-radius:8px;background:#2A2410;color:var(--gold);font-weight:600}
+.pill.g1{background:rgba(14,138,95,.2);color:var(--up)}.pill.r1{background:rgba(200,48,63,.2);color:var(--dn)}
+.kv{display:grid;grid-template-columns:110px 1fr;gap:4px 10px;margin:8px 0}
+.msg{font-size:13px;padding:10px 12px;border-radius:10px;margin:8px 0;display:none}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#1E2E52;border:1px solid var(--gold);
+padding:12px 16px;border-radius:12px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;z-index:9}
+.toast.on{opacity:1}
+.sub{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="top">
+<div style="display:flex;align-items:center;gap:8px"><svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true">
+<path d="M32 3l25 14.5v29L32 61 7 46.5v-29z" fill="none" stroke="#E6B450" stroke-width="5" stroke-linejoin="round"/>
+<path d="M22 42V22l20 20V22" fill="none" stroke="#E8EDF7" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<div><div class="bn">Nexora Control</div><div class="k" id="who"></div></div></div>
+<button class="btn dark" id="outBtn" style="display:none" onclick="logout()">Log out</button>
+</div>
+
+<!-- LOGIN -->
+<div id="login" class="card" style="max-width:420px;margin:30px auto">
+<div class="bn" style="font-size:18px;margin-bottom:10px">Admin login</div>
+<form id="lf" style="display:flex;flex-direction:column;gap:10px">
+<label class="fl" id="lE">Email<input class="in" name="e" type="email" autocomplete="username"></label>
+<label class="fl" id="lP">Password<input class="in" name="p" type="password" autocomplete="current-password"></label>
+<label class="fl" id="lC" style="display:none">Google Authenticator code<input class="in" name="c" inputmode="numeric"
+maxlength="6"></label>
+<div class="msg" id="lm"></div>
+<button class="btn gold" type="submit" id="lb">Log in</button>
+</form>
+</div>
+
+<!-- PANEL -->
+<div id="panel" style="display:none">
+<div class="tabs" id="tabs">
+<button class="tab on" data-t="dash">Dashboard</button><button class="tab" data-t="dep">Deposits</button>
+<button class="tab" data-t="wd">Withdrawals</button><button class="tab" data-t="users">Users</button>
+<button class="tab" data-t="coins">Coins &amp; QR</button><button class="tab" data-t="move">Fund transfer</button>
+<button class="tab" data-t="list">Listings</button><button class="tab" data-t="audit">Audit log</button>
+</div>
+<div id="view"></div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var sb=supabase.createClient('https://cttfcljydiluvccgivto.supabase.co','sb_publishable_JEp-0dxsA6_PZF6Hcb5fSQ_LWAevHDL');
+var ROLE=null,TAB='dash',FAC=null,DSUB='open',WSUB='open';
+function $(i){return document.getElementById(i);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return '&#'+c.charCodeAt(0)+';';});}
+function say(t){var x=$('toast');x.textContent=t;x.classList.add('on');clearTimeout(x._h);x._h=setTimeout(function(){
+x.classList.remove('on');},3500);}
+function lmsg(t,ok){var m=$('lm');m.style.display=t?'block':'none';m.textContent=t||'';
+m.style.background=ok?'rgba(14,138,95,.18)':'rgba(200,48,63,.18)';m.style.color=ok?'#7FE3BA':'#FF9AA5';}
+function dt(x){return x?new Date(x).toLocaleString():'';}
+function num(v){return (+v||0).toLocaleString('en-US',{maximumFractionDigits:8});}
+var EXP={TRC20:'https://tronscan.org/#/transaction/',BEP20:'https://bscscan.com/tx/',ERC20:'https://etherscan.io/tx/',
+BTC:'https://blockstream.info/tx/',SOL:'https://solscan.io/tx/',POLYGON:'https://polygonscan.com/tx/'};
+var AEXP={TRC20:'https://tronscan.org/#/address/',BEP20:'https://bscscan.com/address/',ERC20:'https://etherscan.io/address/',
+BTC:'https://blockstream.info/address/',SOL:'https://solscan.io/account/',POLYGON:'https://polygonscan.com/address/'};
+function rpc(n,a){return sb.rpc(n,a||{}).then(function(r){if(r.error){say(r.error.message);throw r.error;}return r.data;});}
+function pill(s){var c={approved:'g1',active:'g1',rejected:'r1',frozen:'r1',locked:'r1'}[s]||'';
+return '<span class="pill '+c+'">'+esc(s)+'</span>';}
+
+/* ---- login: password, then 2FA ---- */
+$('lf').onsubmit=function(e){e.preventDefault();var f=new FormData(this);lmsg('');
+if(FAC){sb.auth.mfa.challengeAndVerify({factorId:FAC,code:(f.get('c')||'').trim()}).then(function(r){
+if(r.error){lmsg('Wrong code');return;}enter();});return;}
+sb.auth.signInWithPassword({email:f.get('e'),password:f.get('p')}).then(function(r){if(r.error){lmsg(r.error.message);return;}
+afterPass();});};
+function afterPass(){sb.auth.mfa.listFactors().then(function(l){var t=((l.data||{}).totp||[]).filter(function(x){
+return x.status==='verified';})[0];if(!t){lmsg('Turn on Google Authenticator (2FA) on the main website first, then log in here.');
+return;}sb.auth.mfa.getAuthenticatorAssuranceLevel().then(function(a){if((a.data||{}).currentLevel==='aal2'){enter();return;}
+FAC=t.id;$('lE').style.display='none';$('lP').style.display='none';$('lC').style.display='flex';$('lb').textContent='Verify';});});}
+function enter(){rpc('nx_admin_me').then(function(m){if(!m||!m.role){lmsg('This account is not an admin.');sb.auth.signOut();
+return;}if(m.aal!=='aal2'){afterPass();return;}ROLE=m.role;$('login').style.display='none';$('panel').style.display='block';
+$('outBtn').style.display='';sb.auth.getUser().then(function(u){$('who').textContent=(u.data.user||{}).email+' · '+ROLE;});
+show();});}
+function logout(){sb.auth.signOut().then(function(){location.reload();});}
+sb.auth.getSession().then(function(s){if(s.data.session)afterPass();});
+
+$('tabs').onclick=function(e){var b=e.target.closest('.tab');if(!b)return;TAB=b.dataset.t;
+this.querySelectorAll('.tab').forEach(function(x){x.classList.toggle('on',x===b);});show();};
+function show(){$('view').innerHTML='<div class="k">Loading…</div>';({dash:vDash,dep:vDep,wd:vWd,users:vUsers,coins:vCoins,
+move:vMove,list:vList,audit:vAudit})[TAB]();}
+
+/* ---- dashboard ---- */
+function vDash(){rpc('nx_admin_stats').then(function(s){$('view').innerHTML='<div class="g">'+
+[['Users',s.users],['New today',s.users_today],['Pending deposits',s.dep_pending],['Pending withdrawals',s.wd_pending],
+['New listing requests',s.listings],['Frozen accounts',s.frozen]].map(function(x){return '<div class="st"><b>'+x[1]+
+'</b><span>'+x[0]+'</span></div>';}).join('')+'</div><div class="card" style="margin-top:10px"><div class="bn" '+
+'style="font-size:15px">User funds held</div>'+((s.balances||[]).map(function(b){return '<div class="row" style="justify-content:'+
+'space-between;padding:6px 0;border-bottom:1px solid var(--line)"><b>'+esc(b.asset)+'</b><span>'+num(b.balance)+
+(+b.locked?' <span class="k">(+'+num(b.locked)+' in withdrawal)</span>':'')+'</span></div>';}).join('')||
+'<div class="k">No balances yet</div>')+'</div>';});}
+
+/* ---- deposits ---- */
+function sub(cur,fn){return '<div class="sub">'+[['open','Open'],['approved','Approved'],['rejected','Rejected'],['all','All']]
+.map(function(x){return '<button class="tab'+(x[0]===cur?' on':'')+'" onclick="'+fn+'(\''+x[0]+'\')">'+x[1]+'</button>';})
+.join('')+'</div>';}
+function setD(s){DSUB=s;vDep();}function setW(s){WSUB=s;vWd();}
+function vDep(){rpc('nx_admin_deposits',{p_status:DSUB}).then(function(l){$('view').innerHTML=sub(DSUB,'setD')+(l.map(function(d){
+var open=d.status==='processing'||d.status==='hold';return '<div class="card"><div class="row" style="justify-content:space-between">'+
+'<b>#'+d.id+' · '+num(d.amount)+' '+esc(d.asset)+' <span class="k">'+esc(d.network)+'</span></b>'+pill(d.status)+'</div>'+
+'<div class="kv"><span class="k">User</span><span class="v">'+esc(d.uid)+' · '+esc(d.full_name||'')+' · '+esc(d.email)+'</span>'+
+'<span class="k">From</span><span class="v">'+(d.source==='self'?'Self (own wallet)':'Someone else: '+esc(d.source_name))+'</span>'+
+'<span class="k">TxID</span><span class="v"><a target="_blank" rel="noopener" href="'+esc((EXP[d.network]||'')+d.txid)+'">'+
+esc(d.txid)+'</a></span><span class="k">Time</span><span class="v">'+dt(d.created_at)+'</span>'+
+(d.admin_note?'<span class="k">Note</span><span class="v">'+esc(d.admin_note)+'</span>':'')+'</div>'+
+(open?'<div class="k" style="margin-bottom:6px">Open the TxID link, check: sent to our address, same coin &amp; network, '+
+'amount, enough confirmations.</div><div class="row"><input class="in" style="flex:1;min-width:120px" id="da'+d.id+
+'" placeholder="Credit amount ('+num(d.amount)+')"><input class="in" style="flex:2;min-width:160px" id="dn'+d.id+
+'" placeholder="Note / reason"></div><div class="row" style="margin-top:8px"><button class="btn ok" onclick="decD('+d.id+
+',\'approve\')">Approve &amp; credit</button><button class="btn dark" onclick="decD('+d.id+',\'hold\')">Hold</button>'+
+'<button class="btn bad" onclick="decD('+d.id+',\'reject\')">Reject</button></div>':'')+'</div>';}).join('')||
+'<div class="k">Nothing here.</div>');});}
+function decD(id,a){var amt=$('da'+id).value.trim(),n=$('dn'+id).value.trim();
+if(a==='approve'&&!confirm('Approve and credit this deposit?'))return;
+rpc('nx_admin_deposit_decide',{p_id:id,p_action:a,p_note:n||null,p_amount:amt?+amt:null}).then(function(){say('Done');vDep();});}
+
+/* ---- withdrawals ---- */
+function vWd(){rpc('nx_admin_withdrawals',{p_status:WSUB}).then(function(l){$('view').innerHTML=sub(WSUB,'setW')+(l.map(function(w){
+var open=w.status==='pending'||w.status==='hold';return '<div class="card"><div class="row" style="justify-content:space-between">'+
+'<b>#'+w.id+' · '+num(w.amount)+' '+esc(w.asset)+' <span class="k">'+esc(w.network)+'</span></b>'+pill(w.status)+'</div>'+
+'<div class="kv"><span class="k">User</span><span class="v">'+esc(w.uid)+' · '+esc(w.full_name||'')+' · '+esc(w.email)+'</span>'+
+'<span class="k">Send to</span><span class="v"><a target="_blank" rel="noopener" href="'+esc((AEXP[w.network]||'')+w.address)+
+'">'+esc(w.address)+'</a></span><span class="k">Send amount</span><span class="v" style="color:var(--gold);font-weight:700">'+
+num(w.receive)+' '+esc(w.asset)+' <span class="k">(fee '+num(w.fee)+')</span></span><span class="k">Time</span><span class="v">'+
+dt(w.created_at)+'</span>'+(w.txid_out?'<span class="k">Paid TxID</span><span class="v"><a target="_blank" rel="noopener" href="'+
+esc((EXP[w.network]||'')+w.txid_out)+'">'+esc(w.txid_out)+'</a></span>':'')+(w.admin_note?'<span class="k">Note</span><span '+
+'class="v">'+esc(w.admin_note)+'</span>':'')+'</div>'+(open?'<div class="k" style="margin-bottom:6px">1) Check the user. 2) Send '+
+'<b>'+num(w.receive)+' '+esc(w.asset)+'</b> on <b>'+esc(w.network)+'</b> from the exchange wallet. 3) Paste the TxID and approve.'+
+'</div><input class="in" id="wt'+w.id+'" placeholder="TxID of the payment you sent"><input class="in" style="margin-top:8px" '+
+'id="wn'+w.id+'" placeholder="Note / reason"><div class="row" style="margin-top:8px"><button class="btn ok" onclick="decW('+w.id+
+',\'approve\')">Approve (paid)</button><button class="btn dark" onclick="decW('+w.id+',\'hold\')">Hold</button><button '+
+'class="btn bad" onclick="decW('+w.id+',\'reject\')">Reject &amp; refund</button></div>':'')+'</div>';}).join('')||
+'<div class="k">Nothing here.</div>');});}
+function decW(id,a){var t=$('wt'+id).value.trim(),n=$('wn'+id).value.trim();
+if(a!=='hold'&&!confirm(a==='approve'?'Mark as paid?':'Reject and return the funds to the user?'))return;
+rpc('nx_admin_withdraw_decide',{p_id:id,p_action:a,p_txid:t||null,p_note:n||null}).then(function(){say('Done');vWd();});}
+
+/* ---- users ---- */
+var UQ='';
+function vUsers(){rpc('nx_admin_users',{p_q:UQ}).then(function(l){$('view').innerHTML='<div class="row" style="margin-bottom:10px">'+
+'<input class="in" style="flex:1" id="uq" placeholder="Search UID, email or name" value="'+esc(UQ)+'"><button class="btn gold" '+
+'onclick="UQ=$(\'uq\').value.trim();vUsers()">Search</button></div>'+(l.map(function(u){return '<div class="card"><div class="row" '+
+'style="justify-content:space-between"><b>'+esc(u.uid)+' · '+esc(u.full_name||'—')+'</b>'+pill(u.status)+'</div><div class="kv">'+
+'<span class="k">Email</span><span class="v">'+esc(u.email)+(u.verified?' <span class="pill g1">verified</span>':
+' <span class="pill">not verified</span>')+'</span><span class="k">2FA</span><span class="v">'+(u.twofa?'On':'Off')+'</span>'+
+'<span class="k">Joined</span><span class="v">'+dt(u.created_at)+'</span><span class="k">Referred by</span><span class="v">'+
+esc(u.referred_by||'—')+'</span><span class="k">Balances</span><span class="v">'+((u.wallets||[]).map(function(w){
+return esc(w.account)+': '+num(w.balance)+' '+esc(w.asset)+(+w.locked?' (+'+num(w.locked)+' locked)':'');}).join('<br>')||'0')+
+'</span><span class="k">Withdrawals</span><span class="v">'+(u.withdraw_blocked?'<span class="pill r1">blocked</span>':'allowed')+
+'</span></div><div class="row"><select class="in" style="width:auto" id="us'+u.id+'"><option value="active"'+
+(u.status==='active'?' selected':'')+'>Active</option><option value="frozen"'+(u.status==='frozen'?' selected':'')+
+'>Frozen (hold funds)</option><option value="locked"'+(u.status==='locked'?' selected':'')+'>Locked</option></select><label '+
+'class="k" style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="ub'+u.id+'"'+(u.withdraw_blocked?' checked':'')+
+'> Block withdrawals</label></div><div class="row" style="margin-top:8px"><input class="in" style="flex:1" id="un'+u.id+
+'" placeholder="Reason (required)"><button class="btn dark" onclick="setU(\''+u.id+'\')">Save</button></div></div>';}).join('')||
+'<div class="k">No users found.</div>');});}
+function setU(id){rpc('nx_admin_user_set',{p_user:id,p_status:$('us'+id).value,p_withdraw_blocked:$('ub'+id).checked,
+p_note:$('un'+id).value.trim()}).then(function(){say('Saved');vUsers();});}
+
+/* ---- coins & QR ---- */
+var FIELDS=[['asset','Coin symbol'],['network','Network (TRC20/BEP20/ERC20/BTC/SOL/POLYGON)'],['coin_name','Coin name'],
+['deposit_address','Deposit address'],['contract','Token contract (if token)'],['withdraw_fee','Withdrawal fee'],
+['min_withdraw','Min withdrawal'],['min_deposit','Min deposit'],['conf_credit','Confirmations to credit'],
+['conf_unlock','Confirmations to unlock'],['decimals','Decimals'],['sort','Order']];
+function vCoins(){rpc('nx_admin_networks').then(function(l){window._nets=l;$('view').innerHTML='<button class="btn gold" '+
+'style="margin-bottom:10px" onclick="editN(-1)">+ Add coin / network</button>'+l.map(function(n,i){return '<div class="card">'+
+'<div class="row" style="justify-content:space-between"><b>'+esc(n.asset)+' · '+esc(n.network)+'</b>'+(n.enabled?
+'<span class="pill g1">on</span>':'<span class="pill r1">off</span>')+'</div><div class="row" style="margin-top:8px;gap:12px">'+
+(n.qr_url?'<img src="'+esc(n.qr_url)+'" alt="" style="width:70px;height:70px;background:#fff;border-radius:8px">':
+'<span class="k">No QR uploaded (auto QR)</span>')+'<span class="v" style="flex:1">'+esc(n.deposit_address||'No address')+'</span>'+
+'</div><div class="k" style="margin-top:6px">Fee '+num(n.withdraw_fee)+' · min withdraw '+num(n.min_withdraw)+' · min deposit '+
+num(n.min_deposit)+'</div><button class="btn dark" style="margin-top:8px" onclick="editN('+i+')">Edit</button></div>';}).join('');});}
+function editN(i){var n=i>=0?window._nets[i]:{enabled:true,conf_credit:1,conf_unlock:1,decimals:6,sort:100};
+$('view').innerHTML='<div class="card"><div class="bn" style="font-size:16px;margin-bottom:8px">'+(i>=0?'Edit '+esc(n.asset)+
+' · '+esc(n.network):'Add coin / network')+'</div><div style="display:flex;flex-direction:column;gap:8px">'+FIELDS.map(function(f){
+return '<label class="fl">'+f[1]+'<input class="in" id="f_'+f[0]+'" value="'+esc(n[f[0]]==null?'':n[f[0]])+'"'+
+(i>=0&&(f[0]==='asset'||f[0]==='network')?' readonly':'')+'></label>';}).join('')+'<label class="fl">QR image (optional)'+
+'<input class="in" type="file" accept="image/*" id="f_qrfile" style="padding-top:8px"></label><input type="hidden" id="f_qr_url" '+
+'value="'+esc(n.qr_url||'')+'"><div id="qrprev">'+(n.qr_url?'<img src="'+esc(n.qr_url)+'" style="width:120px;background:#fff;'+
+'border-radius:8px">':'')+'</div><label class="k" style="display:flex;gap:6px;align-items:center"><input type="checkbox" '+
+'id="f_enabled"'+(n.enabled?' checked':'')+'> Enabled (users can see it)</label><div class="row"><button class="btn gold" '+
+'onclick="saveN()">Save</button><button class="btn dark" onclick="vCoins()">Cancel</button>'+(n.qr_url?'<button class="btn dark" '+
+'onclick="$(\'f_qr_url\').value=\'\';$(\'qrprev\').innerHTML=\'<span class=k>QR removed (auto QR)</span>\'">Remove QR</button>':'')+
+'</div></div></div>';
+$('f_qrfile').onchange=function(){var file=this.files[0];if(!file)return;if(file.size>2e6){say('Image must be under 2 MB');return;}
+var a=$('f_asset').value.trim().toUpperCase(),nw=$('f_network').value.trim().toUpperCase();if(!a||!nw){say('Fill coin and network first');
+return;}var path=a+'_'+nw+'_'+Date.now()+'.'+(file.name.split('.').pop()||'png');say('Uploading…');
+sb.storage.from('qr').upload(path,file,{upsert:true,contentType:file.type}).then(function(r){if(r.error){say(r.error.message);return;}
+var u=sb.storage.from('qr').getPublicUrl(path).data.publicUrl;$('f_qr_url').value=u;$('qrprev').innerHTML='<img src="'+esc(u)+
+'" style="width:120px;background:#fff;border-radius:8px">';say('QR uploaded. Press Save.');});};}
+function saveN(){var p={};FIELDS.forEach(function(f){var v=$('f_'+f[0]).value.trim();if(v!=='')p[f[0]]=v;});p.qr_url=$('f_qr_url').value;
+p.enabled=$('f_enabled').checked;rpc('nx_admin_network_save',{p:p}).then(function(){say('Saved');vCoins();});}
+
+/* ---- owner fund transfer ---- */
+function vMove(){$('view').innerHTML='<div class="card"><div class="bn" style="font-size:16px">Fund transfer between accounts</div>'+
+'<div class="k" style="margin:6px 0 10px;line-height:1.5">Owner only. Use only after checking KYC and documents (for example a '+
+'locked account moving funds to a verified family account). Every transfer is saved in the audit log.</div><div style="display:flex;'+
+'flex-direction:column;gap:8px"><label class="fl">From UID<input class="in" id="m_f" placeholder="NX…"></label><label class="fl">To UID'+
+'<input class="in" id="m_t" placeholder="NX…"></label><label class="fl">Coin<input class="in" id="m_a" value="USDT"></label><label '+
+'class="fl">Amount<input class="in" id="m_n" inputmode="decimal"></label><label class="fl">Reason and documents checked<textarea '+
+'class="in" id="m_r" rows="3"></textarea></label><button class="btn gold" onclick="doMove()">Transfer</button></div></div>';}
+function doMove(){var f=$('m_f').value,t=$('m_t').value,a=$('m_a').value.trim().toUpperCase(),n=+$('m_n').value;
+if(!confirm('Move '+n+' '+a+' from '+f+' to '+t+'?'))return;rpc('nx_admin_move_funds',{p_from_uid:f,p_to_uid:t,p_asset:a,p_amount:n,
+p_reason:$('m_r').value}).then(function(){say('Transferred');vMove();});}
+
+/* ---- listings ---- */
+function vList(){rpc('nx_admin_listings').then(function(l){$('view').innerHTML=l.map(function(x){return '<div class="card"><div '+
+'class="row" style="justify-content:space-between"><b>'+esc(x.project)+' ('+esc(x.symbol)+')</b>'+pill(x.status)+'</div><div '+
+'class="kv"><span class="k">Chain</span><span class="v">'+esc(x.chain)+'</span><span class="k">Contract</span><span class="v">'+
+esc(x.contract)+'</span><span class="k">Website</span><span class="v">'+esc(x.website||'—')+'</span><span class="k">Community</span>'+
+'<span class="v">'+esc(x.community||'—')+'</span><span class="k">Email</span><span class="v">'+esc(x.email)+'</span><span class="k">'+
+'About</span><span class="v">'+esc(x.about||'')+'</span><span class="k">Date</span><span class="v">'+dt(x.created_at)+'</span></div>'+
+'<div class="row">'+['reviewing','approved','rejected'].map(function(s){return '<button class="btn dark" onclick="setL('+x.id+',\''+
+s+'\')">'+s+'</button>';}).join('')+'</div></div>';}).join('')||'<div class="k">No applications yet.</div>';});}
+function setL(id,s){rpc('nx_admin_listing_set',{p_id:id,p_status:s}).then(function(){say('Saved');vList();});}
+
+/* ---- audit ---- */
+function vAudit(){rpc('nx_admin_audit').then(function(l){$('view').innerHTML=l.map(function(a){return '<div class="card"><div '+
+'class="row" style="justify-content:space-between"><b>'+esc(a.action)+'</b><span class="k">'+dt(a.created_at)+'</span></div><div '+
+'class="k">'+esc(a.admin_email||'')+' · '+esc(a.target||'')+'</div><div class="v" style="font-size:12px;margin-top:4px">'+
+esc(a.details?JSON.stringify(a.details):'')+'</div></div>';}).join('')||'<div class="k">No actions yet.</div>';});}
+</script>
+</body>
+</html>
