@@ -8,6 +8,7 @@
 <meta name="theme-color" content="#0B1426">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230B1426'/%3E%3Cpath d='M32 9l20 11.5v23L32 55 12 43.5v-23z' fill='%23E6B450'/%3E%3Cpath d='M24 40V24l16 16V24' fill='none' stroke='%230B1426' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -145,8 +146,8 @@ fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke
 <div class="bal">
 <div class="lab">Total balance (USDT)</div>
 <div class="big">0.00 <small>≈ $0.00</small></div>
-<div class="g2"><button class="btn gold" onclick="go('wallet')">Deposit</button>
-<button class="btn dark" onclick="go('wallet')">Withdraw</button></div>
+<div class="g2"><button class="btn gold" onclick="go('deposit')">Deposit</button>
+<button class="btn dark" onclick="go('withdraw')">Withdraw</button></div>
 </div>
 <div class="card">
 <div class="ct">Get started in 3 steps</div>
@@ -284,18 +285,79 @@ id="tmid">—</div>
 <section class="pg" id="p-wallet">
 <h1 class="h1">Wallet</h1>
 <div><div class="lab">Est. total value</div>
-<div class="big">0.00 <small>USDT</small></div></div>
-<div class="g3"><button class="btn gold" onclick="soon()">Deposit</button>
-<button class="btn dark" onclick="soon()">Withdraw</button><button class="btn dark" onclick="soon()">Transfer</button>
-</div>
-<div class="card"><div class="ct">Deposit USDT</div>
-<div style="display:flex;gap:8px;flex-wrap:wrap">
-<span class="soon" style="font-size:13px;padding:8px 12px">TRC20</span>
-<span class="soon" style="font-size:13px;padding:8px 12px">BEP20</span>
-<span class="soon" style="font-size:13px;padding:8px 12px">ERC20</span></div>
-<div style="font-size:12px;color:var(--mut2);line-height:1.5">Deposits and withdrawals are launching soon.
-Withdrawals will need 2FA, and new withdrawal addresses will have a security hold.</div></div>
-<div><div class="ct" style="padding-bottom:4px">Assets</div><div id="alist"></div></div>
+<div class="big"><span id="wTot">0.00</span> <small>USDT</small></div></div>
+<div class="g3"><button class="btn gold" onclick="go('deposit')">Deposit</button>
+<button class="btn dark" onclick="go('withdraw')">Withdraw</button>
+<button class="btn dark" onclick="go('transfer')">Transfer</button></div>
+<div class="sec">My wallets</div>
+<div class="grp" id="wList"></div>
+<div style="display:flex;justify-content:space-between;align-items:center"><div class="ct">Recent activity</div>
+<button class="tab" style="color:var(--gold)" onclick="go('history')">View all</button></div>
+<div id="wHist"></div>
+</section>
+
+<!-- DEPOSIT -->
+<section class="pg" id="p-deposit">
+<h1 class="h1">Deposit USDT</h1>
+<div class="lab">1. Choose network</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap" id="dNets"></div>
+<div class="card" id="dAddrBox"></div>
+<form id="dForm" style="display:flex;flex-direction:column;gap:10px">
+<div class="lab">2. After sending, submit your deposit</div>
+<label class="fl">Amount sent (USDT)<input class="in" name="amount" inputmode="decimal" required></label>
+<label class="fl">Transaction hash (TxID)<input class="in" name="txid" required placeholder="Paste TxID from your wallet"></label>
+<div class="fl">Whose wallet did you send from?
+<div class="seg" id="dSrc"><button type="button" data-s="self">My own wallet (Self)</button>
+<button type="button" data-s="other">Someone else</button></div></div>
+<label class="fl" id="dOther" style="display:none">Name of the wallet owner<input class="in" name="sname"></label>
+<button class="btn gold" type="submit">Submit deposit</button>
+</form>
+<div style="font-size:12px;color:var(--mut2);line-height:1.5">Your deposit shows as <b>Processing</b> until our team
+confirms it on the blockchain, then it is added to your Spot wallet.</div>
+</section>
+
+<!-- WITHDRAW -->
+<section class="pg" id="p-withdraw">
+<h1 class="h1">Withdraw USDT</h1>
+<div class="lab">Network</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap" id="wNets"></div>
+<form id="wForm" style="display:flex;flex-direction:column;gap:10px">
+<label class="fl">Wallet address<input class="in" name="addr" required placeholder="Paste receiving address"></label>
+<label class="fl">Amount (USDT)<input class="in" name="amount" inputmode="decimal" required></label>
+<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--mut)"><span>Available (Spot)</span>
+<span style="color:var(--soft)" id="wAvail">0.00 USDT</span></div>
+<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--mut)"><span>Network fee</span>
+<span style="color:var(--soft)" id="wFee">—</span></div>
+<div style="display:flex;justify-content:space-between;font-size:13px;color:var(--mut)"><span>You will receive</span>
+<span style="color:var(--gold);font-weight:700" id="wRecv">—</span></div>
+<button class="btn gold" type="submit">Withdraw</button>
+</form>
+<div style="font-size:12px;color:var(--mut2);line-height:1.5">Withdrawals need Google Authenticator (2FA). Every
+withdrawal is checked by our team before it is sent. Always double-check the address and network.</div>
+</section>
+
+<!-- TRANSFER -->
+<section class="pg" id="p-transfer">
+<h1 class="h1">Transfer</h1>
+<div style="font-size:13px;color:var(--mut2)">Move USDT between your own Nexora wallets. Free and instant.</div>
+<form id="tForm" style="display:flex;flex-direction:column;gap:10px">
+<label class="fl">From<select class="in" name="from"><option value="spot">Spot wallet</option>
+<option value="funding">Funding (P2P) wallet</option></select></label>
+<label class="fl">To<select class="in" name="to"><option value="funding">Funding (P2P) wallet</option>
+<option value="spot">Spot wallet</option><option value="futures">Futures wallet (soon)</option></select></label>
+<label class="fl">Amount (USDT)<input class="in" name="amount" inputmode="decimal" required></label>
+<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--mut)"><span>Available</span>
+<span style="color:var(--soft)" id="tAvail">0.00 USDT</span></div>
+<button class="btn gold" type="submit">Transfer</button>
+</form>
+<div style="font-size:12px;color:var(--mut2);line-height:1.5">To send to an outside wallet (Trust Wallet, MetaMask,
+Binance…), use <a href="#withdraw">Withdraw</a>.</div>
+</section>
+
+<!-- HISTORY -->
+<section class="pg" id="p-history">
+<h1 class="h1">Transaction history</h1>
+<div id="hAll"></div>
 </section>
 
 <!-- ACCOUNT -->
@@ -392,7 +454,7 @@ if(v>=1)return v.toFixed(3);if(v>=0.01)return v.toFixed(4);return v.toPrecision(
 function fv(v){v=+v;if(v>=1e9)return (v/1e9).toFixed(2)+'B';if(v>=1e6)return (v/1e6).toFixed(1)+'M';
 if(v>=1e3)return (v/1e3).toFixed(1)+'K';return v.toFixed(0);}
 
-var QA=[['Deposit','dep','wallet'],['Withdraw','wd','wallet'],['P2P','p2p'],['Convert','cv'],
+var QA=[['Deposit','dep','deposit'],['Withdraw','wd','withdraw'],['P2P','p2p'],['Convert','cv'],
 ['Copy Trade','cp'],['Trading Bot','bot'],['Refer & Earn','ref','account'],['Proof of Reserves','por']];
 $('qa').innerHTML=QA.map(function(q){return '<button class="q" data-g="'+(q[2]||'')+'"><span class="qi">'+
 svg(IC[q[1]])+'</span>'+q[0]+'</button>';}).join('');
@@ -408,7 +470,7 @@ function go(p){location.hash=p;}
 var MENU=[['Trade',[['Markets','mk','markets'],['Spot trading','tr','trade'],['Convert','cv'],['P2P trading','p2p'],
 ['Futures (soon)','fut']]],
 ['Earn & Tools',[['Copy trading','cp'],['Trading bot','bot'],['API keys','key'],['Refer & Earn','ref','account']]],
-['Assets',[['Wallet','wl','wallet'],['Deposit','dep','wallet'],['Withdraw','wd','wallet'],['Transaction history','his']]],
+['Assets',[['Wallet','wl','wallet'],['Deposit','dep','deposit'],['Withdraw','wd','withdraw'],['Transfer','cv','transfer'],['Transaction history','his','history']]],
 ['Nexora',[['List your token','lst','listing'],['Proof of Reserves','por'],['Fee rates','fee'],
 ['Security & 2FA','sec','account'],['Help & support','hlp','tg']]],
 ['Community',[['Telegram','tgm','tg'],['X (Twitter)','x','x']]]];
@@ -426,7 +488,7 @@ function menu(o){$('dr').classList.toggle('on',!!o);$('ov').classList.toggle('on
 function show(){var p=(location.hash||'#home').slice(1);if(!$('p-'+p))p='home';
 document.querySelectorAll('.pg').forEach(function(s){s.classList.toggle('on',s.id==='p-'+p);});
 document.querySelectorAll('.nb').forEach(function(b){b.classList.toggle('on',b.dataset.p===p);});
-window.scrollTo(0,0);if(p==='trade')loadTrade();if(p==='2fa')load2fa();
+window.scrollTo(0,0);if(p==='trade')loadTrade();if(p==='2fa')load2fa();if(WPAGES.indexOf(p)>-1)walletPage(p);
 if(p==='auth'&&!document.getElementById('aTitle').dataset.i){document.getElementById('aTitle').dataset.i=1;setMode(aMode);}}
 window.onhashchange=show;
 
@@ -596,9 +658,10 @@ else{refresh();go('account');}});}else{say('Welcome to Nexora');refresh();go('ac
 document.getElementById('npForm').onsubmit=function(e){e.preventDefault();var p=new FormData(this).get('p');
 sb.auth.updateUser({password:p}).then(function(r){if(r.error){say(r.error.message);return;}say('Password updated');go('account');});};
 
-function refresh(){if(!sb){renderAcct();return;}sb.auth.getUser().then(function(r){ME=(r.data||{}).user||null;
-if(!ME){PROF=null;renderAcct();return;}
-sb.from('profiles').select('*').eq('id',ME.id).maybeSingle().then(function(p){PROF=p.data||null;renderAcct();});});}
+function refresh(){if(!sb){renderAcct();return;}sb.auth.getUser().then(function(r){ME=(r.data||{}).user||null;AREADY=1;
+if(!ME){PROF=null;renderAcct();var c0=(location.hash||'').slice(1);if(WPAGES.indexOf(c0)>-1)walletPage(c0);return;}
+sb.from('profiles').select('*').eq('id',ME.id).maybeSingle().then(function(p){PROF=p.data||null;renderAcct();
+var cp2=(location.hash||'').slice(1);if(WPAGES.indexOf(cp2)>-1)walletPage(cp2);});});}
 function renderAcct(){var top=$('acctTop'),mb=document.querySelector('#dr .dh').nextElementSibling;
 if(!ME){top.innerHTML='<div class="card" style="flex-direction:row;align-items:center"><div class="av" '+
 'style="width:48px;height:48px;border-radius:24px;border:2px solid var(--gold)">N</div><div style="flex:1">'+
@@ -659,7 +722,88 @@ function confirmCode(fid,ok){var box=$('tfaBox');box.innerHTML='<label class="fl
 if(sb)sb.auth.onAuthStateChange(function(ev){if(ev==='PASSWORD_RECOVERY'){location.hash='newpass';}
 if(ev==='SIGNED_IN'||ev==='SIGNED_OUT'||ev==='USER_UPDATED')refresh();});
 refresh();
-drawHome();drawAssets();show();loadTickers();setInterval(loadTickers,60000);liveTick();
+
+/* ---------- Wallet: balances, deposit, withdraw, transfer, history ---------- */
+var WPAGES=['wallet','deposit','withdraw','transfer','history'],NETS=[],WAL={},dNet='TRC20',wNet='TRC20',dSrc='self';
+var ACN={spot:'Spot wallet',funding:'Funding (P2P) wallet',futures:'Futures wallet'};
+function f2(v){return (+v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:6});}
+function errText(e){return ((e&&e.message)||'Something went wrong').replace(/^.*?:\s*(?=[A-Z])/,'');}
+function loginBox(id){$(id).innerHTML='<div class="card" style="text-align:center"><div class="ct">Log in to continue</div>'+
+'<button class="btn gold" onclick="openAuth(\'in\')">Log in</button></div>';}
+function loadNets(cb){if(NETS.length){cb();return;}sb.from('nx_networks').select('*').eq('enabled',true).order('sort')
+.then(function(r){NETS=r.data||[];cb();});}
+function loadWal(cb){sb.from('nx_wallets').select('*').then(function(r){WAL={};(r.data||[]).forEach(function(w){
+WAL[w.account]=w;});cb&&cb();});}
+function bal(a){return WAL[a]?+WAL[a].balance:0;}
+var AREADY=0;
+function walletPage(p){if(!sb||!AREADY)return;if(!ME){var t={wallet:'wList',deposit:'dAddrBox',withdraw:'wNets',transfer:'tAvail',
+history:'hAll'}[p];if(p==='wallet'||p==='history'||p==='deposit')loginBox(t);if(p!=='wallet'&&p!=='history')openAuth('in');
+return;}
+loadNets(function(){loadWal(function(){if(p==='wallet')drawWallet();if(p==='deposit')drawDeposit();
+if(p==='withdraw')drawWithdraw();if(p==='transfer')drawTransfer();if(p==='history'||p==='wallet')loadHist(p);});});}
+function drawWallet(){var tot=0;$('wList').innerHTML=['spot','funding','futures'].map(function(a){var w=WAL[a]||{},
+b=+w.balance||0,l=+w.locked||0;tot+=b+l;return '<div class="li" style="cursor:default"><div style="display:flex;'+
+'flex-direction:column;gap:2px"><span>'+ACN[a]+(a==='futures'?' <span class="soon">Soon</span>':'')+'</span>'+
+(l?'<span style="font-size:11px;color:var(--mut)">In review: '+f2(l)+' USDT</span>':'')+'</div><span class="s" '+
+'style="color:var(--tx);font-weight:600;font-size:14px">'+f2(b)+' USDT</span></div>';}).join('');$('wTot').textContent=f2(tot);}
+function netChips(id,cur,fn){$(id).innerHTML=NETS.map(function(n){var on=n.network===cur;return '<button type="button" '+
+'class="tf'+(on?' on':'')+'" style="height:36px;padding:0 14px;font-size:13px" data-n="'+n.network+'">'+n.network+'</button>';
+}).join('');$(id).onclick=function(e){var b=e.target.closest('[data-n]');if(b)fn(b.dataset.n);};}
+function drawDeposit(){netChips('dNets',dNet,function(n){dNet=n;drawDeposit();});var n=NETS.filter(function(x){
+return x.network===dNet;})[0]||{},box=$('dAddrBox');
+if(!n.deposit_address){box.innerHTML='<div class="ct">'+esc(dNet)+' deposits open soon</div><div style="font-size:12.5px;'+
+'color:var(--mut2)">The deposit address for this network will appear here once it is activated.</div>';$('dForm').style.display='none';}
+else{var qr='';try{var q=qrcode(0,'M');q.addData(n.deposit_address);q.make();qr=q.createSvgTag({cellSize:4,margin:2});}catch(e){}
+box.innerHTML='<div class="ct">Send only USDT on '+esc(dNet)+'</div><div style="display:flex;gap:12px;align-items:center">'+
+(qr?'<div style="background:#fff;border-radius:10px;padding:4px;flex-shrink:0">'+qr+'</div>':'')+'<div style="min-width:0">'+
+'<div style="font-size:11px;color:var(--mut)">Nexora deposit address</div><div style="font-size:13px;word-break:break-all" '+
+'id="dAddr">'+esc(n.deposit_address)+'</div><button type="button" class="btn dark" style="height:34px;font-size:12px;'+
+'padding:0 12px;margin-top:6px" onclick="cp($(\'dAddr\').textContent)">Copy address</button></div></div><div style="'+
+'font-size:12px;color:#FF9AA5;line-height:1.5">Sending any other coin or network will be lost. Minimum deposit: '+
+f2(n.min_deposit)+' USDT.</div>';$('dForm').style.display='flex';}
+document.querySelectorAll('#dSrc button').forEach(function(b){var on=b.dataset.s===dSrc;b.style.background=on?'var(--gold)':
+'transparent';b.style.color=on?'var(--bg)':'var(--mut)';b.style.fontSize='13px';});$('dOther').style.display=dSrc==='other'?'flex':'none';}
+$('dSrc').onclick=function(e){var b=e.target.closest('[data-s]');if(b){dSrc=b.dataset.s;drawDeposit();}};
+function cp(t){try{navigator.clipboard.writeText(t);say('Copied');}catch(e){say(t);}}
+$('dForm').onsubmit=function(e){e.preventDefault();var f=new FormData(this),form=this;
+sb.rpc('nx_deposit_submit',{p_network:dNet,p_amount:+f.get('amount'),p_txid:f.get('txid'),p_source:dSrc,
+p_source_name:f.get('sname')||null}).then(function(r){if(r.error){say(errText(r.error));return;}form.reset();
+say('Deposit submitted. Status: Processing');go('history');});};
+function drawWithdraw(){netChips('wNets',wNet,function(n){wNet=n;drawWithdraw();});$('wAvail').textContent=f2(bal('spot'))+
+' USDT';calcW();}
+function calcW(){var n=NETS.filter(function(x){return x.network===wNet;})[0]||{},a=+$('wForm').amount.value||0;
+$('wFee').textContent=n.withdraw_fee!=null?f2(n.withdraw_fee)+' USDT · min '+f2(n.min_withdraw):'—';
+$('wRecv').textContent=a>0?f2(Math.max(0,a-(+n.withdraw_fee||0)))+' USDT':'—';}
+$('wForm').amount.oninput=calcW;
+$('wForm').onsubmit=function(e){e.preventDefault();var f=new FormData(this),form=this,a=+f.get('amount'),ad=f.get('addr').trim();
+if(!window.confirm('Withdraw '+a+' USDT on '+wNet+' to\n'+ad+' ?\n\nPlease check the address and network carefully.'))return;
+sb.rpc('nx_withdraw_request',{p_network:wNet,p_address:ad,p_amount:a}).then(function(r){
+if(r.error){var m=errText(r.error);say(m);if(/2FA/.test(m)&&/Turn on/.test(m))go('2fa');return;}
+form.reset();say('Withdrawal requested. Our team will review it.');go('history');});};
+function drawTransfer(){var fr=$('tForm').from.value;$('tAvail').textContent=f2(bal(fr))+' USDT';}
+$('tForm').from.onchange=function(){var t=$('tForm').to;if(t.value===this.value)t.value=this.value==='spot'?'funding':'spot';
+drawTransfer();};
+$('tForm').onsubmit=function(e){e.preventDefault();var f=new FormData(this),form=this;
+sb.rpc('nx_internal_transfer',{p_from:f.get('from'),p_to:f.get('to'),p_amount:+f.get('amount')}).then(function(r){
+if(r.error){say(errText(r.error));return;}form.amount.value='';say('Transfer complete');loadWal(drawTransfer);});};
+var STC={processing:'var(--gold)',pending:'var(--gold)',hold:'#FF9AA5',approved:'var(--up)',rejected:'var(--dn)',done:'var(--up)'};
+var STN={processing:'Processing',pending:'In review',hold:'On hold',approved:'Completed',rejected:'Rejected',done:'Completed'};
+function loadHist(p){Promise.all([sb.from('nx_deposits').select('*').order('id',{ascending:false}).limit(50),
+sb.from('nx_withdrawals').select('*').order('id',{ascending:false}).limit(50),
+sb.from('nx_transfers').select('*').order('id',{ascending:false}).limit(50)]).then(function(r){var l=[];
+(r[0].data||[]).forEach(function(d){l.push({t:d.created_at,k:'Deposit',s:d.network+' · '+(d.source==='self'?'Self':
+'From '+(d.source_name||'other')),a:'+'+f2(d.amount),st:d.status,n:d.admin_note});});
+(r[1].data||[]).forEach(function(w){l.push({t:w.created_at,k:'Withdraw',s:w.network+' · '+w.address.slice(0,6)+'…'+
+w.address.slice(-4),a:'-'+f2(w.amount),st:w.status,n:w.admin_note});});
+(r[2].data||[]).forEach(function(x){l.push({t:x.created_at,k:'Transfer',s:ACN[x.from_account]+' → '+ACN[x.to_account],
+a:f2(x.amount),st:'done'});});l.sort(function(a,b){return a.t<b.t?1:-1;});
+var h=l.slice(0,p==='wallet'?5:100).map(function(i){return '<div class="row" style="cursor:default"><span class="nm"><b>'+
+i.k+'</b><span>'+esc(i.s)+' · '+new Date(i.t).toLocaleString()+'</span>'+(i.n?'<span style="color:#FF9AA5">'+esc(i.n)+
+'</span>':'')+'</span><span style="text-align:right;display:flex;flex-direction:column;gap:2px"><b style="font-size:14px">'+
+i.a+' USDT</b><span style="font-size:12px;color:'+STC[i.st]+'">'+STN[i.st]+'</span></span></div>';}).join('')||
+'<div style="padding:14px 0;color:var(--mut);font-size:13px">No transactions yet.</div>';
+$(p==='wallet'?'wHist':'hAll').innerHTML=h;});}
+drawHome();show();loadTickers();setInterval(loadTickers,60000);liveTick();
 </script>
 </body>
 </html>
