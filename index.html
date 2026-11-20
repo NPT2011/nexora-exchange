@@ -286,10 +286,10 @@ id="tmid">—</div>
 <h1 class="h1">Wallet</h1>
 <div><div class="lab">Est. total value</div>
 <div class="big"><span id="wTot">0.00</span> <small>USDT</small></div></div>
+<div class="tabs" id="wTabs"><button class="tab on" data-a="spot">Spot</button><button class="tab" data-a="funding">Funding (P2P)</button><button class="tab" data-a="futures">Futures</button></div>
 <div class="g3"><button class="btn gold" onclick="go('deposit')">Deposit</button>
 <button class="btn dark" onclick="go('withdraw')">Withdraw</button>
 <button class="btn dark" onclick="go('transfer')">Transfer</button></div>
-<div class="sec">My wallets</div>
 <div class="grp" id="wList"></div>
 <div style="display:flex;justify-content:space-between;align-items:center"><div class="ct">Recent activity</div>
 <button class="tab" style="color:var(--gold)" onclick="go('history')">View all</button></div>
@@ -298,13 +298,15 @@ id="tmid">—</div>
 
 <!-- DEPOSIT -->
 <section class="pg" id="p-deposit">
-<h1 class="h1">Deposit USDT</h1>
-<div class="lab">1. Choose network</div>
+<h1 class="h1" id="dTitle">Deposit</h1>
+<div class="lab">1. Choose coin</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap" id="dCoins"></div>
+<div class="lab">2. Choose network</div>
 <div style="display:flex;gap:8px;flex-wrap:wrap" id="dNets"></div>
 <div class="card" id="dAddrBox"></div>
 <form id="dForm" style="display:flex;flex-direction:column;gap:10px">
-<div class="lab">2. After sending, submit your deposit</div>
-<label class="fl">Amount sent (USDT)<input class="in" name="amount" inputmode="decimal" required></label>
+<div class="lab">3. After sending, submit your deposit</div>
+<label class="fl"><span>Amount sent (<span class="dA">USDT</span>)</span><input class="in" name="amount" inputmode="decimal" required></label>
 <label class="fl">Transaction hash (TxID)<input class="in" name="txid" required placeholder="Paste TxID from your wallet"></label>
 <div class="fl">Whose wallet did you send from?
 <div class="seg" id="dSrc"><button type="button" data-s="self">My own wallet (Self)</button>
@@ -318,12 +320,14 @@ confirms it on the blockchain, then it is added to your Spot wallet.</div>
 
 <!-- WITHDRAW -->
 <section class="pg" id="p-withdraw">
-<h1 class="h1">Withdraw USDT</h1>
+<h1 class="h1" id="wTitle">Withdraw</h1>
+<div class="lab">Coin</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap" id="wCoins"></div>
 <div class="lab">Network</div>
 <div style="display:flex;gap:8px;flex-wrap:wrap" id="wNets"></div>
 <form id="wForm" style="display:flex;flex-direction:column;gap:10px">
 <label class="fl">Wallet address<input class="in" name="addr" required placeholder="Paste receiving address"></label>
-<label class="fl">Amount (USDT)<input class="in" name="amount" inputmode="decimal" required></label>
+<label class="fl"><span>Amount (<span class="wA">USDT</span>)</span><input class="in" name="amount" inputmode="decimal" required></label>
 <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--mut)"><span>Available (Spot)</span>
 <span style="color:var(--soft)" id="wAvail">0.00 USDT</span></div>
 <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--mut)"><span>Network fee</span>
@@ -339,13 +343,14 @@ withdrawal is checked by our team before it is sent. Always double-check the add
 <!-- TRANSFER -->
 <section class="pg" id="p-transfer">
 <h1 class="h1">Transfer</h1>
-<div style="font-size:13px;color:var(--mut2)">Move USDT between your own Nexora wallets. Free and instant.</div>
+<div style="font-size:13px;color:var(--mut2)">Move coins between your own Nexora wallets. Free and instant.</div>
 <form id="tForm" style="display:flex;flex-direction:column;gap:10px">
+<label class="fl">Coin<select class="in" name="asset" id="tAsset"></select></label>
 <label class="fl">From<select class="in" name="from"><option value="spot">Spot wallet</option>
 <option value="funding">Funding (P2P) wallet</option></select></label>
 <label class="fl">To<select class="in" name="to"><option value="funding">Funding (P2P) wallet</option>
 <option value="spot">Spot wallet</option><option value="futures">Futures wallet (soon)</option></select></label>
-<label class="fl">Amount (USDT)<input class="in" name="amount" inputmode="decimal" required></label>
+<label class="fl">Amount<input class="in" name="amount" inputmode="decimal" required></label>
 <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--mut)"><span>Available</span>
 <span style="color:var(--soft)" id="tAvail">0.00 USDT</span></div>
 <button class="btn gold" type="submit">Transfer</button>
@@ -723,84 +728,111 @@ if(sb)sb.auth.onAuthStateChange(function(ev){if(ev==='PASSWORD_RECOVERY'){locati
 if(ev==='SIGNED_IN'||ev==='SIGNED_OUT'||ev==='USER_UPDATED')refresh();});
 refresh();
 
-/* ---------- Wallet: balances, deposit, withdraw, transfer, history ---------- */
-var WPAGES=['wallet','deposit','withdraw','transfer','history'],NETS=[],WAL={},dNet='TRC20',wNet='TRC20',dSrc='self';
+/* ---------- Wallet: balances, deposit, withdraw, transfer, history (multi-coin) ---------- */
+var WPAGES=['wallet','deposit','withdraw','transfer','history'],NETS=[],WAL={},dAsset='USDT',dNet='TRC20',wAsset='USDT',
+wNet='TRC20',dSrc='self',wTab='spot',AREADY=0;
 var ACN={spot:'Spot wallet',funding:'Funding (P2P) wallet',futures:'Futures wallet'};
-function f2(v){return (+v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:6});}
-function errText(e){return ((e&&e.message)||'Something went wrong').replace(/^.*?:\s*(?=[A-Z])/,'');}
+function assets(){var o=[];NETS.forEach(function(n){if(o.indexOf(n.asset)<0)o.push(n.asset);});return o;}
+function nets(a){return NETS.filter(function(n){return n.asset===a;});}
+function netOf(a,n){return NETS.filter(function(x){return x.asset===a&&x.network===n;})[0]||{};}
+function cname(a){var n=nets(a)[0];return n&&n.coin_name?n.coin_name:a;}
+function px(a){if(a==='USDT'||a==='USDC')return 1;var t=T[a];return t?+t.lastPrice:0;}
+function fa(v,a){var st=a==='USDT'||a==='USDC',d=st?2:(netOf(a,(nets(a)[0]||{}).network).decimals||6);
+return (+v||0).toLocaleString('en-US',{minimumFractionDigits:st?2:0,maximumFractionDigits:d});}
+function f2(v){return (+v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function errText(e){return ((e&&e.message)||'Something went wrong');}
 function loginBox(id){$(id).innerHTML='<div class="card" style="text-align:center"><div class="ct">Log in to continue</div>'+
 '<button class="btn gold" onclick="openAuth(\'in\')">Log in</button></div>';}
 function loadNets(cb){if(NETS.length){cb();return;}sb.from('nx_networks').select('*').eq('enabled',true).order('sort')
 .then(function(r){NETS=r.data||[];cb();});}
 function loadWal(cb){sb.from('nx_wallets').select('*').then(function(r){WAL={};(r.data||[]).forEach(function(w){
-WAL[w.account]=w;});cb&&cb();});}
-function bal(a){return WAL[a]?+WAL[a].balance:0;}
-var AREADY=0;
-function walletPage(p){if(!sb||!AREADY)return;if(!ME){var t={wallet:'wList',deposit:'dAddrBox',withdraw:'wNets',transfer:'tAvail',
-history:'hAll'}[p];if(p==='wallet'||p==='history'||p==='deposit')loginBox(t);if(p!=='wallet'&&p!=='history')openAuth('in');
-return;}
+WAL[w.account+':'+w.asset]=w;});cb&&cb();});}
+function bal(acc,a){var w=WAL[acc+':'+a];return w?+w.balance:0;}
+function lk(acc,a){var w=WAL[acc+':'+a];return w?+w.locked:0;}
+function walletPage(p){if(!sb||!AREADY)return;if(!ME){var t={wallet:'wList',deposit:'dAddrBox',history:'hAll'}[p];
+if(t)loginBox(t);if(p!=='wallet'&&p!=='history')openAuth('in');return;}
 loadNets(function(){loadWal(function(){if(p==='wallet')drawWallet();if(p==='deposit')drawDeposit();
 if(p==='withdraw')drawWithdraw();if(p==='transfer')drawTransfer();if(p==='history'||p==='wallet')loadHist(p);});});}
-function drawWallet(){var tot=0;$('wList').innerHTML=['spot','funding','futures'].map(function(a){var w=WAL[a]||{},
-b=+w.balance||0,l=+w.locked||0;tot+=b+l;return '<div class="li" style="cursor:default"><div style="display:flex;'+
-'flex-direction:column;gap:2px"><span>'+ACN[a]+(a==='futures'?' <span class="soon">Soon</span>':'')+'</span>'+
-(l?'<span style="font-size:11px;color:var(--mut)">In review: '+f2(l)+' USDT</span>':'')+'</div><span class="s" '+
-'style="color:var(--tx);font-weight:600;font-size:14px">'+f2(b)+' USDT</span></div>';}).join('');$('wTot').textContent=f2(tot);}
-function netChips(id,cur,fn){$(id).innerHTML=NETS.map(function(n){var on=n.network===cur;return '<button type="button" '+
-'class="tf'+(on?' on':'')+'" style="height:36px;padding:0 14px;font-size:13px" data-n="'+n.network+'">'+n.network+'</button>';
-}).join('');$(id).onclick=function(e){var b=e.target.closest('[data-n]');if(b)fn(b.dataset.n);};}
-function drawDeposit(){netChips('dNets',dNet,function(n){dNet=n;drawDeposit();});var n=NETS.filter(function(x){
-return x.network===dNet;})[0]||{},box=$('dAddrBox');
-if(!n.deposit_address){box.innerHTML='<div class="ct">'+esc(dNet)+' deposits open soon</div><div style="font-size:12.5px;'+
-'color:var(--mut2)">The deposit address for this network will appear here once it is activated.</div>';$('dForm').style.display='none';}
+$('wTabs').onclick=function(e){var b=e.target.closest('[data-a]');if(!b)return;wTab=b.dataset.a;
+this.querySelectorAll('.tab').forEach(function(x){x.classList.toggle('on',x===b);});drawWallet();};
+function drawWallet(){var tot=0;assets().forEach(function(a){['spot','funding','futures'].forEach(function(acc){
+tot+=(bal(acc,a)+lk(acc,a))*px(a);});});$('wTot').textContent=f2(tot);
+if(wTab==='futures'){$('wList').innerHTML='<div class="li" style="cursor:default">Futures trading opens soon'+
+'<span class="soon" style="margin-left:auto">Soon</span></div>';return;}
+$('wList').innerHTML=assets().map(function(a){var b=bal(wTab,a),l=lk(wTab,a),v=(b+l)*px(a);
+return '<div class="li" style="cursor:default"><span class="av">'+a[0]+'</span><div style="display:flex;flex-direction:column;'+
+'gap:2px"><span style="font-weight:600">'+a+'</span><span style="font-size:11px;color:var(--mut)">'+esc(cname(a))+
+(l?' · In review: '+fa(l,a):'')+'</span></div><span class="s" style="text-align:right;color:var(--tx);font-weight:600;'+
+'font-size:14px">'+fa(b,a)+'<br><span style="font-size:11px;color:var(--mut);font-weight:400">≈ $'+f2(v)+'</span></span></div>';
+}).join('');}
+function chips(id,list,cur,fn){$(id).innerHTML=list.map(function(x){var on=x===cur;return '<button type="button" '+
+'class="tf'+(on?' on':'')+'" style="height:36px;padding:0 14px;font-size:13px" data-n="'+x+'">'+x+'</button>';}).join('');
+$(id).onclick=function(e){var b=e.target.closest('[data-n]');if(b)fn(b.dataset.n);};}
+function fixNet(a,n){var l=nets(a).map(function(x){return x.network;});return l.indexOf(n)>-1?n:l[0];}
+function drawDeposit(){dNet=fixNet(dAsset,dNet);$('dTitle').textContent='Deposit '+dAsset;
+document.querySelectorAll('.dA').forEach(function(e){e.textContent=dAsset;});
+chips('dCoins',assets(),dAsset,function(a){dAsset=a;drawDeposit();});
+chips('dNets',nets(dAsset).map(function(x){return x.network;}),dNet,function(n){dNet=n;drawDeposit();});
+var n=netOf(dAsset,dNet),box=$('dAddrBox');
+if(!n.deposit_address){box.innerHTML='<div class="ct">'+esc(dAsset)+' on '+esc(dNet)+' opens soon</div><div style="'+
+'font-size:12.5px;color:var(--mut2)">The deposit address will appear here once it is activated.</div>';
+$('dForm').style.display='none';}
 else{var qr='';try{var q=qrcode(0,'M');q.addData(n.deposit_address);q.make();qr=q.createSvgTag({cellSize:4,margin:2});}catch(e){}
-box.innerHTML='<div class="ct">Send only USDT on '+esc(dNet)+'</div><div style="display:flex;gap:12px;align-items:center">'+
-(qr?'<div style="background:#fff;border-radius:10px;padding:4px;flex-shrink:0">'+qr+'</div>':'')+'<div style="min-width:0">'+
-'<div style="font-size:11px;color:var(--mut)">Nexora deposit address</div><div style="font-size:13px;word-break:break-all" '+
-'id="dAddr">'+esc(n.deposit_address)+'</div><button type="button" class="btn dark" style="height:34px;font-size:12px;'+
-'padding:0 12px;margin-top:6px" onclick="cp($(\'dAddr\').textContent)">Copy address</button></div></div><div style="'+
-'font-size:12px;color:#FF9AA5;line-height:1.5">Sending any other coin or network will be lost. Minimum deposit: '+
-f2(n.min_deposit)+' USDT.</div>';$('dForm').style.display='flex';}
+box.innerHTML='<div class="ct">Send only '+esc(dAsset)+' on '+esc(dNet)+'</div><div style="display:flex;gap:12px;'+
+'align-items:center">'+(qr?'<div style="background:#fff;border-radius:10px;padding:4px;flex-shrink:0">'+qr+'</div>':'')+
+'<div style="min-width:0"><div style="font-size:11px;color:var(--mut)">Nexora deposit address</div><div style="font-size:13px;'+
+'word-break:break-all" id="dAddr">'+esc(n.deposit_address)+'</div><button type="button" class="btn dark" style="height:34px;'+
+'font-size:12px;padding:0 12px;margin-top:6px" onclick="cp($(\'dAddr\').textContent)">Copy address</button></div></div>'+
+'<div style="font-size:12px;color:#FF9AA5;line-height:1.5">Send only '+esc(dAsset)+' on the '+esc(dNet)+' network. '+
+'Any other coin or network will be lost. Minimum deposit: '+fa(n.min_deposit,dAsset)+' '+esc(dAsset)+'.</div>';
+$('dForm').style.display='flex';}
 document.querySelectorAll('#dSrc button').forEach(function(b){var on=b.dataset.s===dSrc;b.style.background=on?'var(--gold)':
-'transparent';b.style.color=on?'var(--bg)':'var(--mut)';b.style.fontSize='13px';});$('dOther').style.display=dSrc==='other'?'flex':'none';}
+'transparent';b.style.color=on?'var(--bg)':'var(--mut)';b.style.fontSize='13px';});
+$('dOther').style.display=dSrc==='other'?'flex':'none';}
 $('dSrc').onclick=function(e){var b=e.target.closest('[data-s]');if(b){dSrc=b.dataset.s;drawDeposit();}};
 function cp(t){try{navigator.clipboard.writeText(t);say('Copied');}catch(e){say(t);}}
 $('dForm').onsubmit=function(e){e.preventDefault();var f=new FormData(this),form=this;
-sb.rpc('nx_deposit_submit',{p_network:dNet,p_amount:+f.get('amount'),p_txid:f.get('txid'),p_source:dSrc,
+sb.rpc('nx_deposit_submit',{p_asset:dAsset,p_network:dNet,p_amount:+f.get('amount'),p_txid:f.get('txid'),p_source:dSrc,
 p_source_name:f.get('sname')||null}).then(function(r){if(r.error){say(errText(r.error));return;}form.reset();
 say('Deposit submitted. Status: Processing');go('history');});};
-function drawWithdraw(){netChips('wNets',wNet,function(n){wNet=n;drawWithdraw();});$('wAvail').textContent=f2(bal('spot'))+
-' USDT';calcW();}
-function calcW(){var n=NETS.filter(function(x){return x.network===wNet;})[0]||{},a=+$('wForm').amount.value||0;
-$('wFee').textContent=n.withdraw_fee!=null?f2(n.withdraw_fee)+' USDT · min '+f2(n.min_withdraw):'—';
-$('wRecv').textContent=a>0?f2(Math.max(0,a-(+n.withdraw_fee||0)))+' USDT':'—';}
+function drawWithdraw(){wNet=fixNet(wAsset,wNet);$('wTitle').textContent='Withdraw '+wAsset;
+document.querySelectorAll('.wA').forEach(function(e){e.textContent=wAsset;});
+chips('wCoins',assets(),wAsset,function(a){wAsset=a;drawWithdraw();});
+chips('wNets',nets(wAsset).map(function(x){return x.network;}),wNet,function(n){wNet=n;drawWithdraw();});
+$('wAvail').textContent=fa(bal('spot',wAsset),wAsset)+' '+wAsset;calcW();}
+function calcW(){var n=netOf(wAsset,wNet),a=+$('wForm').amount.value||0;
+$('wFee').textContent=n.withdraw_fee!=null?fa(n.withdraw_fee,wAsset)+' '+wAsset+' · min '+fa(n.min_withdraw,wAsset):'—';
+$('wRecv').textContent=a>0?fa(Math.max(0,a-(+n.withdraw_fee||0)),wAsset)+' '+wAsset:'—';}
 $('wForm').amount.oninput=calcW;
 $('wForm').onsubmit=function(e){e.preventDefault();var f=new FormData(this),form=this,a=+f.get('amount'),ad=f.get('addr').trim();
-if(!window.confirm('Withdraw '+a+' USDT on '+wNet+' to\n'+ad+' ?\n\nPlease check the address and network carefully.'))return;
-sb.rpc('nx_withdraw_request',{p_network:wNet,p_address:ad,p_amount:a}).then(function(r){
-if(r.error){var m=errText(r.error);say(m);if(/2FA/.test(m)&&/Turn on/.test(m))go('2fa');return;}
+if(!window.confirm('Withdraw '+a+' '+wAsset+' on '+wNet+' to\n'+ad+' ?\n\nPlease check the address and network carefully.'))return;
+sb.rpc('nx_withdraw_request',{p_asset:wAsset,p_network:wNet,p_address:ad,p_amount:a}).then(function(r){
+if(r.error){var m=errText(r.error);say(m);if(/Turn on/.test(m))go('2fa');return;}
 form.reset();say('Withdrawal requested. Our team will review it.');go('history');});};
-function drawTransfer(){var fr=$('tForm').from.value;$('tAvail').textContent=f2(bal(fr))+' USDT';}
+function drawTransfer(){var sel=$('tAsset'),cur=sel.value||'USDT';sel.innerHTML=assets().map(function(a){return '<option'+
+(a===cur?' selected':'')+'>'+a+'</option>';}).join('');var a=sel.value,fr=$('tForm').from.value;
+$('tAvail').textContent=fa(bal(fr,a),a)+' '+a;}
+$('tAsset').onchange=drawTransfer;
 $('tForm').from.onchange=function(){var t=$('tForm').to;if(t.value===this.value)t.value=this.value==='spot'?'funding':'spot';
 drawTransfer();};
 $('tForm').onsubmit=function(e){e.preventDefault();var f=new FormData(this),form=this;
-sb.rpc('nx_internal_transfer',{p_from:f.get('from'),p_to:f.get('to'),p_amount:+f.get('amount')}).then(function(r){
-if(r.error){say(errText(r.error));return;}form.amount.value='';say('Transfer complete');loadWal(drawTransfer);});};
+sb.rpc('nx_internal_transfer',{p_asset:f.get('asset'),p_from:f.get('from'),p_to:f.get('to'),p_amount:+f.get('amount')})
+.then(function(r){if(r.error){say(errText(r.error));return;}form.amount.value='';say('Transfer complete');loadWal(drawTransfer);});};
 var STC={processing:'var(--gold)',pending:'var(--gold)',hold:'#FF9AA5',approved:'var(--up)',rejected:'var(--dn)',done:'var(--up)'};
 var STN={processing:'Processing',pending:'In review',hold:'On hold',approved:'Completed',rejected:'Rejected',done:'Completed'};
 function loadHist(p){Promise.all([sb.from('nx_deposits').select('*').order('id',{ascending:false}).limit(50),
 sb.from('nx_withdrawals').select('*').order('id',{ascending:false}).limit(50),
 sb.from('nx_transfers').select('*').order('id',{ascending:false}).limit(50)]).then(function(r){var l=[];
-(r[0].data||[]).forEach(function(d){l.push({t:d.created_at,k:'Deposit',s:d.network+' · '+(d.source==='self'?'Self':
-'From '+(d.source_name||'other')),a:'+'+f2(d.amount),st:d.status,n:d.admin_note});});
-(r[1].data||[]).forEach(function(w){l.push({t:w.created_at,k:'Withdraw',s:w.network+' · '+w.address.slice(0,6)+'…'+
-w.address.slice(-4),a:'-'+f2(w.amount),st:w.status,n:w.admin_note});});
-(r[2].data||[]).forEach(function(x){l.push({t:x.created_at,k:'Transfer',s:ACN[x.from_account]+' → '+ACN[x.to_account],
-a:f2(x.amount),st:'done'});});l.sort(function(a,b){return a.t<b.t?1:-1;});
+(r[0].data||[]).forEach(function(d){l.push({t:d.created_at,k:'Deposit',c:d.asset,s:d.network+' · '+(d.source==='self'?'Self':
+'From '+(d.source_name||'other')),a:'+'+fa(d.amount,d.asset),st:d.status,n:d.admin_note});});
+(r[1].data||[]).forEach(function(w){l.push({t:w.created_at,k:'Withdraw',c:w.asset,s:w.network+' · '+w.address.slice(0,6)+'…'+
+w.address.slice(-4),a:'-'+fa(w.amount,w.asset),st:w.status,n:w.admin_note});});
+(r[2].data||[]).forEach(function(x){l.push({t:x.created_at,k:'Transfer',c:x.asset,s:ACN[x.from_account]+' → '+
+ACN[x.to_account],a:fa(x.amount,x.asset),st:'done'});});l.sort(function(a,b){return a.t<b.t?1:-1;});
 var h=l.slice(0,p==='wallet'?5:100).map(function(i){return '<div class="row" style="cursor:default"><span class="nm"><b>'+
-i.k+'</b><span>'+esc(i.s)+' · '+new Date(i.t).toLocaleString()+'</span>'+(i.n?'<span style="color:#FF9AA5">'+esc(i.n)+
-'</span>':'')+'</span><span style="text-align:right;display:flex;flex-direction:column;gap:2px"><b style="font-size:14px">'+
-i.a+' USDT</b><span style="font-size:12px;color:'+STC[i.st]+'">'+STN[i.st]+'</span></span></div>';}).join('')||
+i.k+' '+esc(i.c)+'</b><span>'+esc(i.s)+' · '+new Date(i.t).toLocaleString()+'</span>'+(i.n?'<span style="color:#FF9AA5">'+
+esc(i.n)+'</span>':'')+'</span><span style="text-align:right;display:flex;flex-direction:column;gap:2px"><b style="font-size:14px">'+
+i.a+' '+esc(i.c)+'</b><span style="font-size:12px;color:'+STC[i.st]+'">'+STN[i.st]+'</span></span></div>';}).join('')||
 '<div style="padding:14px 0;color:var(--mut);font-size:13px">No transactions yet.</div>';
 $(p==='wallet'?'wHist':'hAll').innerHTML=h;});}
 drawHome();show();loadTickers();setInterval(loadTickers,60000);liveTick();
