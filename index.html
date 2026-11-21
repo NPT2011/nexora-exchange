@@ -207,6 +207,7 @@ is checked and reviewed by our team before listing.</div>
 <div class="seg" id="aSeg"><button data-m="up">Sign up</button><button data-m="in">Log in</button></div>
 <form id="aForm" style="display:flex;flex-direction:column;gap:10px">
 <label class="fl" id="fName">Full name<input class="in" name="name" autocomplete="name"></label>
+<label class="fl" id="fCountry">Country of residence<select class="in" name="country" id="aCountry"><option value="">Select your country</option></select></label>
 <label class="fl">Email<input class="in" name="email" type="email" required autocomplete="email"></label>
 <label class="fl" id="fPass">Password<input class="in" name="pass" type="password" minlength="8"
 autocomplete="current-password"></label>
@@ -243,17 +244,38 @@ autocomplete="new-password"></label>
 <div style="font-size:13px;color:var(--mut2);line-height:1.5">Fill in your project details. Our team will check
 the contract, liquidity and project before approving the listing.</div>
 <form id="lform" style="display:flex;flex-direction:column;gap:10px">
+<div class="sec" style="margin:6px 0 0">Token</div>
 <label class="fl">Project name *<input class="in" name="Project" required></label>
 <label class="fl">Token symbol *<input class="in" name="Symbol" required placeholder="e.g. ABC"></label>
 <label class="fl">Blockchain *<select class="in" name="Chain" required>
 <option>BNB Smart Chain (BEP-20)</option><option>Solana (SPL)</option><option>Ethereum (ERC-20)</option>
 <option>Tron (TRC-20)</option><option>Polygon</option><option>Other</option></select></label>
 <label class="fl">Contract address *<input class="in" name="Contract" required></label>
-<label class="fl">Website<input class="in" name="Website" placeholder="https://"></label>
-<label class="fl">Telegram / X link<input class="in" name="Community"></label>
-<label class="fl">Contact email *<input class="in" type="email" name="Email" required></label>
-<label class="fl">About the project<textarea class="in" name="About" rows="4"
+<label class="fl">Total supply *<input class="in" name="supply" required inputmode="numeric"></label>
+<label class="fl">Launch date *<input class="in" type="date" name="launch" required></label>
+<label class="fl">Logo image link (PNG, 200×200 or more)<input class="in" name="logo" placeholder="https://"></label>
+<label class="fl">DEX liquidity pool link (PancakeSwap / Raydium etc.) *<input class="in" name="pool" required placeholder="https://"></label>
+<label class="fl">Contract audit report link<input class="in" name="audit" placeholder="https://"></label>
+<div class="sec" style="margin:6px 0 0">Project</div>
+<label class="fl">Website *<input class="in" name="Website" required placeholder="https://"></label>
+<label class="fl">Whitepaper link *<input class="in" name="whitepaper" required placeholder="https://"></label>
+<label class="fl">Telegram *<input class="in" name="Community" required placeholder="https://t.me/…"></label>
+<label class="fl">X (Twitter)<input class="in" name="twitter" placeholder="https://x.com/…"></label>
+<label class="fl">Other links (GitHub, Discord, Medium)<input class="in" name="other"></label>
+<label class="fl">About the project and how the token is used *<textarea class="in" name="About" rows="4" required
 style="height:auto;padding:10px"></textarea></label>
+<label class="fl">Team members (names and roles)<textarea class="in" name="team" rows="3" style="height:auto;padding:10px"></textarea></label>
+<div class="sec" style="margin:6px 0 0">Company and contact</div>
+<label class="fl">Company / organisation name<input class="in" name="company"></label>
+<label class="fl">Company country<input class="in" name="ccountry"></label>
+<label class="fl">Company address<input class="in" name="caddress"></label>
+<label class="fl">Contact person name *<input class="in" name="cname" required></label>
+<label class="fl">Contact person role *<input class="in" name="crole" required placeholder="Founder / CEO / CMO"></label>
+<label class="fl">Contact email *<input class="in" type="email" name="Email" required></label>
+<label class="fl">Contact phone / Telegram username *<input class="in" name="cphone" required></label>
+<label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--mut2);line-height:1.5"><input type="checkbox"
+name="ok" required style="margin-top:3px"> I confirm all information is true. Nexora will check the contract, liquidity, team and
+website, and may ask for more documents. Listing is only after approval.</label>
 <button class="btn gold" type="submit">Submit application</button>
 </form>
 </section>
@@ -410,6 +432,41 @@ Binance…), use <a href="#withdraw">Withdraw</a>.</div>
 <div id="hAll"></div>
 </section>
 
+<!-- KYC -->
+<section class="pg" id="p-kyc">
+<h1 class="h1">Identity verification</h1>
+<div class="wbox" id="kycState"></div>
+<form id="kycForm" class="wbox" style="display:none;flex-direction:column;gap:10px">
+<label class="fl">Country of residence<select class="in" name="country" id="kCountry"></select></label>
+<label class="fl">Document type<select class="in" name="doc" id="kDoc"></select></label>
+<label class="fl">Document number<input class="in" name="num" required autocomplete="off"></label>
+<label class="fl">Full name (exactly as on the document)<input class="in" name="name" required></label>
+<label class="fl">Date of birth<input class="in" type="date" name="dob" required></label>
+<label class="fl">Mobile number with country code<input class="in" name="mob" required inputmode="tel" placeholder="+91 98765 43210"></label>
+<label class="fl">Address (optional)<input class="in" name="addr"></label>
+<label class="fl">Document photo – front<input class="in" type="file" name="f1" accept="image/*,application/pdf" style="padding-top:9px" required></label>
+<label class="fl">Document photo – back (if any)<input class="in" type="file" name="f2" accept="image/*,application/pdf" style="padding-top:9px"></label>
+<label class="fl">Selfie holding the document<input class="in" type="file" name="f3" accept="image/*" capture="user" style="padding-top:9px" required></label>
+<button class="btn gold" type="submit" id="kBtn">Submit for verification</button>
+<div style="font-size:12px;color:var(--mut2);line-height:1.5">One person can have only one Nexora account. A document or mobile
+number already used on another account is rejected automatically. Your documents are private.</div>
+</form>
+</section>
+
+<!-- DOCUMENTS FOR A HELD DEPOSIT -->
+<section class="pg" id="p-docs">
+<h1 class="h1">Upload documents</h1>
+<div class="wbox" id="docInfo"></div>
+<form id="docForm" class="wbox" style="display:flex;flex-direction:column;gap:10px">
+<label class="fl">Choose photos or PDF files (up to 6, max 5 MB each)<input class="in" type="file" name="f" multiple
+accept="image/*,application/pdf" style="padding-top:9px"></label>
+<div id="docList" style="font-size:12.5px;color:var(--mut2);line-height:1.6"></div>
+<button class="btn gold" type="submit" id="docBtn">Submit documents</button>
+<div style="font-size:12px;color:var(--mut2);line-height:1.5">Your documents are private. Only you and the Nexora
+verification team can see them.</div>
+</form>
+</section>
+
 <!-- ACCOUNT -->
 <section class="pg" id="p-account">
 <div id="acctTop"></div>
@@ -417,7 +474,8 @@ Binance…), use <a href="#withdraw">Withdraw</a>.</div>
 <div style="font-size:12.5px;color:#D9DFEA">Earn 15–35% of your friends' trading fees</div></div>
 <button class="btn gold" style="height:40px;padding:0 14px;font-size:13px" onclick="soon()">Invite</button></div>
 <div class="sec">Security</div>
-<div class="grp"><button class="li" onclick="need()&&go('2fa')">Google Authenticator (2FA)<span class="s" id="s2fa">Off</span></button>
+<div class="grp"><button class="li" onclick="need()&&go('kyc')">Identity verification (KYC)<span class="s" id="sKyc">—</span></button>
+<button class="li" onclick="need()&&go('2fa')">Google Authenticator (2FA)<span class="s" id="s2fa">Off</span></button>
 <button class="li" onclick="need()">Email verification<span class="s" id="sEmail">—</span></button>
 <button class="li" onclick="soon()">Withdrawal whitelist<span class="s">Soon</span></button></div>
 <div class="sec">Trading tools</div>
@@ -475,6 +533,7 @@ b.style.background=on?'var(--gold)':'transparent';b.style.color=on?'var(--bg)':'
 document.getElementById('aSeg').style.display=code?'none':'grid';
 document.getElementById('fName').style.display=up?'flex':'none';
 document.getElementById('fRef').style.display=up?'flex':'none';
+document.getElementById('fCountry').style.display=up?'flex':'none';if(up)loadCountries();
 document.getElementById('fPass').style.display=(fp||code)?'none':'flex';
 document.getElementById('fCode').style.display=code?'flex':'none';
 document.querySelector('#aForm [name=email]').parentNode.style.display=code?'none':'flex';
@@ -542,7 +601,7 @@ function menu(o){$('dr').classList.toggle('on',!!o);$('ov').classList.toggle('on
 function show(){var p=(location.hash||'#home').slice(1);if(!$('p-'+p))p='home';
 document.querySelectorAll('.pg').forEach(function(s){s.classList.toggle('on',s.id==='p-'+p);});
 document.querySelectorAll('.nb').forEach(function(b){b.classList.toggle('on',b.dataset.p===p);});
-window.scrollTo(0,0);if(p==='trade')loadTrade();if(p==='2fa')load2fa();if(WPAGES.indexOf(p)>-1)walletPage(p);
+window.scrollTo(0,0);if(p==='docs')drawDocs();if(p==='kyc')drawKyc();if(p==='trade')loadTrade();if(p==='2fa')load2fa();if(WPAGES.indexOf(p)>-1)walletPage(p);
 if(p==='auth'&&!document.getElementById('aTitle').dataset.i){document.getElementById('aTitle').dataset.i=1;setMode(aMode);}}
 window.onhashchange=show;
 
@@ -599,7 +658,9 @@ if(mtab==='spot')drawMk();else loadDex();};
 /* Listing application */
 $('lform').onsubmit=function(e){e.preventDefault();var f=new FormData(this),form=this,
 row={project:f.get('Project'),symbol:f.get('Symbol'),chain:f.get('Chain'),contract:f.get('Contract'),
-website:f.get('Website'),community:f.get('Community'),email:f.get('Email'),about:f.get('About')};
+website:f.get('Website'),community:f.get('Community'),email:f.get('Email'),about:f.get('About'),details:{}};
+['supply','launch','logo','pool','audit','whitepaper','twitter','other','team','company','ccountry','caddress','cname','crole',
+'cphone'].forEach(function(k){var v=(f.get(k)||'').trim();if(v)row.details[k]=v;});
 if(!sb){say('Connection problem. Please refresh.');return;}sb.from('listing_applications').insert(row).then(function(r){if(r.error){say('Could not submit: '+r.error.message);return;}
 form.reset();say('Thank you! Your application will be checked and reviewed by our team.');});};
 function drawAssets(){$('alist').innerHTML=['USDT','BTC','ETH','SOL'].map(function(c){
@@ -693,10 +754,11 @@ var SITE=location.origin+location.pathname;
 document.getElementById('aForm').onsubmit=function(e){e.preventDefault();if(!sb){aMsg('Connection problem. Please refresh the page.');return;}var f=new FormData(this),btn=$('aBtn'),
 email=(f.get('email')||'').trim(),pass=f.get('pass')||'';btn.disabled=true;aMsg('');
 function done(){btn.disabled=false;}
-if(aMode==='up'){if(pass.length<8){aMsg('Password must be at least 8 characters.');done();return;}
+if(aMode==='up'){if(!f.get('country')){aMsg('Please select your country.');done();return;}
+if(pass.length<8){aMsg('Password must be at least 8 characters.');done();return;}
 sb.auth.signUp({email:email,password:pass,options:{emailRedirectTo:SITE,data:{full_name:f.get('name')||'',
-ref:(f.get('ref')||'').trim().toUpperCase()}}}).then(function(r){done();
-if(r.error){aMsg(r.error.message);return;}
+ref:(f.get('ref')||'').trim().toUpperCase(),country:f.get('country')}}}).then(function(r){done();
+if(r.error){aMsg(/database error/i.test(r.error.message)?'Sign up is not available for the selected country.':r.error.message);return;}
 aMsg('Account created! We sent a verification link to '+email+'. Open your email and click the link to activate.',1);});}
 else if(aMode==='in'){sb.auth.signInWithPassword({email:email,password:pass}).then(function(r){done();
 if(r.error){aMsg(/confirm/i.test(r.error.message)?'Please verify your email first. Check your inbox for the link.':
@@ -739,6 +801,8 @@ esc(nm)+'</div><div style="font-size:12px;color:var(--mut)">UID '+esc(uid)+'</di
 'style="height:38px;font-size:13px" onclick="menu(0);go(\'account\')">My account</button><button class="btn" style="height:38px;'+
 'font-size:13px;background:transparent;border:1px solid #3A2430;color:var(--dn)" onclick="menu(0);logout()">Log out</button>'+
 '</div></div>';
+var ks=(PROF||{}).kyc_status||'none';$('sKyc').textContent={none:'Not verified',pending:'In review',approved:'Verified',rejected:'Rejected'}[ks];
+$('sKyc').style.color=ks==='approved'?'var(--up)':ks==='rejected'?'var(--dn)':'var(--gold)';
 $('sEmail').textContent=ok?'Verified':'Pending';$('sEmail').style.color=ok?'var(--up)':'var(--gold)';
 sb.auth.mfa.listFactors().then(function(l){var on=((l.data||{}).totp||[]).some(function(x){return x.status==='verified';});
 $('s2fa').textContent=on?'On':'Off';$('s2fa').style.color=on?'var(--up)':'var(--gold)';});}
@@ -934,23 +998,75 @@ drawTransfer();};
 $('tForm').onsubmit=function(e){e.preventDefault();var f=new FormData(this),form=this;
 sb.rpc('nx_internal_transfer',{p_asset:f.get('asset'),p_from:f.get('from'),p_to:f.get('to'),p_amount:+f.get('amount')})
 .then(function(r){if(r.error){say(errText(r.error));return;}form.amount.value='';say('Transfer complete');loadWal(drawTransfer);});};
-var STC={processing:'var(--gold)',pending:'var(--gold)',hold:'#FF9AA5',approved:'var(--up)',rejected:'var(--dn)',done:'var(--up)'};
-var STN={processing:'Processing',pending:'In review',hold:'On hold',approved:'Completed',rejected:'Rejected',done:'Completed'};
+var STC={docs:'var(--gold)',processing:'var(--gold)',pending:'var(--gold)',hold:'#FF9AA5',approved:'var(--up)',rejected:'var(--dn)',done:'var(--up)'};
+var STN={docs:'Documents needed',processing:'Processing',pending:'In review',hold:'On hold',approved:'Completed',rejected:'Rejected',done:'Completed'};
 function loadHist(p){Promise.all([sb.from('nx_deposits').select('*').order('id',{ascending:false}).limit(50),
 sb.from('nx_withdrawals').select('*').order('id',{ascending:false}).limit(50),
 sb.from('nx_transfers').select('*').order('id',{ascending:false}).limit(50)]).then(function(r){var l=[];
-(r[0].data||[]).forEach(function(d){l.push({t:d.created_at,k:'Deposit',c:d.asset,s:d.network+' · '+(d.source==='self'?'Self':
-'From '+(d.source_name||'other')),a:'+'+fa(d.amount,d.asset),st:d.status,n:d.admin_note});});
+DEPS={};(r[0].data||[]).forEach(function(d){DEPS[d.id]=d;l.push({t:d.created_at,k:'Deposit',c:d.asset,s:d.network+' · '+(d.source==='self'?'Self':
+'From '+(d.source_name||'other')),a:'+'+fa(d.amount,d.asset),st:d.docs_status==='needed'&&d.status==='hold'?'docs':d.status,
+n:d.admin_note,id:d.id});});
 (r[1].data||[]).forEach(function(w){l.push({t:w.created_at,k:'Withdraw',c:w.asset,s:w.network+' · '+w.address.slice(0,6)+'…'+
 w.address.slice(-4),a:'-'+fa(w.amount,w.asset),st:w.status,n:w.admin_note});});
 (r[2].data||[]).forEach(function(x){l.push({t:x.created_at,k:'Transfer',c:x.asset,s:ACN[x.from_account]+' → '+
 ACN[x.to_account],a:fa(x.amount,x.asset),st:'done'});});l.sort(function(a,b){return a.t<b.t?1:-1;});
 var h=l.slice(0,p==='wallet'?5:100).map(function(i){return '<div class="row" style="cursor:default"><span class="nm"><b>'+
 i.k+' '+esc(i.c)+'</b><span>'+esc(i.s)+' · '+new Date(i.t).toLocaleString()+'</span>'+(i.n?'<span style="color:#FF9AA5">'+
-esc(i.n)+'</span>':'')+'</span><span style="text-align:right;display:flex;flex-direction:column;gap:2px"><b style="font-size:14px">'+
+esc(i.n)+'</span>':'')+(i.st==='docs'?'<button class="btn gold" style="height:34px;margin-top:6px;'+
+'font-size:13px;align-self:flex-start" onclick="openDocs('+i.id+')">Upload documents</button>':'')+'</span><span style="text-align:right;display:flex;flex-direction:column;gap:2px"><b style="font-size:14px">'+
 i.a+' '+esc(i.c)+'</b><span style="font-size:12px;color:'+STC[i.st]+'">'+STN[i.st]+'</span></span></div>';}).join('')||
 '<div style="padding:14px 0;color:var(--mut);font-size:13px">No transactions yet.</div>';
 $(p==='wallet'?'wHist':'hAll').innerHTML=h;});}
+var DEPS={},DOCDEP=null;
+function openDocs(id){DOCDEP=id;go('docs');}
+function drawDocs(){var d=DEPS[DOCDEP];if(!d||!ME){go('history');return;}
+$('docInfo').innerHTML='<div class="ct">Deposit '+fa(d.amount,d.asset)+' '+esc(d.asset)+' ('+esc(d.network)+')</div>'+
+'<div style="font-size:13px;color:var(--mut2);line-height:1.6;padding-top:6px">'+esc(d.admin_note||'')+'</div>'+
+'<div style="font-size:13.5px;line-height:1.8;padding-top:8px;white-space:pre-line">'+esc(d.docs_request||'')+'</div>';
+$('docForm').reset();$('docList').textContent='';}
+$('docForm').f.onchange=function(){$('docList').innerHTML=Array.prototype.map.call(this.files,function(f){
+return esc(f.name)+' ('+Math.round(f.size/1024)+' KB)';}).join('<br>');};
+$('docForm').onsubmit=function(e){e.preventDefault();var fs=Array.prototype.slice.call(this.f.files),b=$('docBtn');
+if(!fs.length){say('Choose at least one file');return;}if(fs.length>6){say('Up to 6 files');return;}
+for(var k=0;k<fs.length;k++)if(fs[k].size>5e6){say(fs[k].name+' is larger than 5 MB');return;}
+b.disabled=true;b.textContent='Uploading…';var paths=[];
+Promise.all(fs.map(function(f,k){var p=ME.id+'/dep'+DOCDEP+'/'+Date.now()+'_'+k+'.'+((f.name.split('.').pop()||'jpg')
+.toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg');paths.push(p);return sb.storage.from('kyc').upload(p,f,{contentType:f.type})
+.then(function(r){if(r.error)throw r.error;});})).then(function(){return sb.rpc('nx_deposit_docs_submit',{p_id:DOCDEP,
+p_files:paths});}).then(function(r){if(r&&r.error)throw r.error;say('Documents submitted. Our team will check them.');
+go('history');}).catch(function(er){say(errText(er));}).then(function(){b.disabled=false;b.textContent='Submit documents';});};
+var CTRY=null;
+function loadCountries(cb){if(CTRY){fillCountries();cb&&cb();return;}if(!sb)return;sb.from('nx_countries').select('*').eq('allowed',true)
+.order('name').then(function(r){CTRY=r.data||[];fillCountries();cb&&cb();});}
+function fillCountries(){['aCountry','kCountry'].forEach(function(id){var el=$(id),cur=el.value;if(el.options.length>1)return;
+el.innerHTML='<option value="">Select your country</option>'+CTRY.map(function(c){return '<option value="'+c.code+'">'+esc(c.name)+
+'</option>';}).join('');if(cur)el.value=cur;});}
+function kDocs(){var c=(CTRY||[]).filter(function(x){return x.code===$('kCountry').value;})[0];
+$('kDoc').innerHTML=(c?c.doc_types:[]).map(function(d){return '<option>'+esc(d)+'</option>';}).join('');}
+$('kCountry').onchange=kDocs;
+function drawKyc(){if(!AREADY){setTimeout(drawKyc,300);return;}if(!ME){openAuth('in');return;}var st=$('kycState'),fm=$('kycForm');st.innerHTML='Loading…';fm.style.display='none';
+sb.from('nx_kyc').select('*').order('id',{ascending:false}).limit(1).then(function(r){var k=(r.data||[])[0];
+if(k&&k.status==='approved'){st.innerHTML='<div class="ct" style="color:var(--up)">Verified</div><div style="font-size:13px;'+
+'color:var(--mut2);padding-top:6px">'+esc(k.full_name)+' · '+esc(k.doc_type)+' ****'+esc(k.doc_last4||'')+'</div>';return;}
+if(k&&k.status==='pending'){st.innerHTML='<div class="ct" style="color:var(--gold)">In review</div><div style="font-size:13px;'+
+'color:var(--mut2);padding-top:6px;line-height:1.6">Your documents were received. Our team will check them, usually within '+
+'24 hours.</div>';return;}
+st.innerHTML=k?'<div class="ct" style="color:var(--dn)">Rejected</div><div style="font-size:13px;color:var(--mut2);padding-top:6px;'+
+'line-height:1.6">'+esc(k.note||'')+'<br>Please submit again with correct details.</div>':'<div class="ct">Verify your identity'+
+'</div><div style="font-size:13px;color:var(--mut2);padding-top:6px;line-height:1.6">Use a document from your country of '+
+'residence. India: Aadhaar, PAN or Passport. Other countries: Passport, National ID or Driving licence.</div>';
+fm.style.display='flex';loadCountries(function(){if(!$('kCountry').value&&PROF&&PROF.country)$('kCountry').value=PROF.country;kDocs();});});}
+$('kycForm').onsubmit=function(e){e.preventDefault();var f=new FormData(this),b=$('kBtn'),fs=[f.get('f1'),f.get('f2'),f.get('f3')]
+.filter(function(x){return x&&x.size;});if(!f.get('country')){say('Select your country');return;}
+for(var k=0;k<fs.length;k++)if(fs[k].size>5e6){say(fs[k].name+' is larger than 5 MB');return;}
+b.disabled=true;b.textContent='Uploading…';var paths=[];
+Promise.all(fs.map(function(x,k){var p=ME.id+'/kyc/'+Date.now()+'_'+k+'.'+((x.name.split('.').pop()||'jpg').toLowerCase()
+.replace(/[^a-z0-9]/g,'')||'jpg');paths.push(p);return sb.storage.from('kyc').upload(p,x,{contentType:x.type}).then(function(r){
+if(r.error)throw r.error;});})).then(function(){return sb.rpc('nx_kyc_submit',{p_country:f.get('country'),p_doc_type:f.get('doc'),
+p_doc_number:f.get('num'),p_full_name:f.get('name'),p_dob:f.get('dob'),p_mobile:f.get('mob'),p_address:f.get('addr')||null,
+p_files:paths});}).then(function(r){if(r&&r.error)throw r.error;say('Submitted. Our team will verify it.');
+$('kycForm').reset();refresh();drawKyc();}).catch(function(er){say(errText(er));}).then(function(){b.disabled=false;
+b.textContent='Submit for verification';});};
 drawHome();show();loadTickers();setInterval(loadTickers,60000);liveTick();
 </script>
 </body>
