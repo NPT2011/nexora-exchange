@@ -68,17 +68,16 @@ var MENU=[['Trade',[['Markets','mk','markets'],['Spot trading','tr','trade'],['C
 ['Earn & Tools',[['Copy trading','cp'],['Trading bot','bot'],['API keys','key'],['Refer & Earn','ref','account']]],
 ['Assets',[['Wallet','wl','wallet'],['Deposit','dep','addfunds'],['Withdraw','wd','withdraw'],['Transfer','cv','transfer'],['Transaction history','his','history']]],
 ['Nexora',[['List your token','lst','listing'],['Proof of Reserves','por'],['Fee rates','fee'],
-['Security & 2FA','sec','account'],['Help & support','hlp','chat']]],
-['Community',[['Telegram','tgm','tg'],['X (Twitter)','x','x']]]];
+['Security & 2FA','sec','account'],['Help & support (live chat)','hlp','chat'],['Email support','mail','mail']]]];
 IC.fut='M3 17l6-6 4 4 8-8M15 7h6v6';IC.key='M15 7a4 4 0 1 1-3.9 5H3v3h3v3h3v-3h2.1A4 4 0 0 1 15 7z';
 IC.his='M12 8v4l3 2M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5';IC.lst='M12 5v14M5 12h14';
 IC.fee='M19 5L5 19M7 7h.01M17 17h.01';IC.sec='M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4';
 IC.hlp='M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01';
-IC.tgm='M21 4L3 11l6 2 2 6 3-4 5 4z';IC.x='M4 4l16 16M20 4L4 20';
+IC.mail='M4 6h16v12H4zM4 7l8 6 8-6';IC.tgm='M21 4L3 11l6 2 2 6 3-4 5 4z';IC.x='M4 4l16 16M20 4L4 20';
 $('dmenu').innerHTML=MENU.map(function(g){return '<div class="dg"><div class="dt">'+g[0]+'</div>'+g[1].map(function(i){
 return '<button class="di" data-g="'+(i[2]||'')+'">'+svg(IC[i[1]],20)+i[0]+'</button>';}).join('')+'</div>';}).join('');
 $('dmenu').onclick=function(e){var b=e.target.closest('.di');if(!b)return;var g=b.dataset.g;menu(0);
-if(g==='chat')supOpen();else if(g==='tg')window.open('https://t.me/MineXoraOfficial','_blank');else if(g==='x')window.open('https://x.com/MineXoraAsia','_blank');
+if(g==='chat')supOpen();else if(g==='mail')location.href='mailto:nexoraxexchange@gmail.com';
 else if(g)go(g);else soon();};
 function menu(o){$('dr').classList.toggle('on',!!o);$('ov').classList.toggle('on',!!o);}
 function show(){var p=(location.hash||'#home').slice(1);if(!$('p-'+p))p='home';
