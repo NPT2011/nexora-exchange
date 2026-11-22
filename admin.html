@@ -69,7 +69,7 @@ maxlength="6"></label>
 <div id="panel" style="display:none">
 <div class="tabs" id="tabs">
 <button class="tab on" data-t="dash">Dashboard</button><button class="tab" data-t="dep">Deposits</button>
-<button class="tab" data-t="wd">Withdrawals</button><button class="tab" data-t="users">Users</button><button class="tab" data-t="kyc">KYC</button>
+<button class="tab" data-t="wd">Withdrawals</button><button class="tab" data-t="spot">Trading</button><button class="tab" data-t="users">Users</button><button class="tab" data-t="kyc">KYC</button>
 <button class="tab" data-t="coins">Coins &amp; QR</button><button class="tab" data-t="move">Fund transfer</button>
 <button class="tab" data-t="list">Listings</button><button class="tab" data-t="ctry">Countries</button><button class="tab" data-t="audit">Audit log</button>
 </div>
@@ -117,7 +117,7 @@ sb.auth.getSession().then(function(s){if(s.data.session)afterPass();});
 $('tabs').onclick=function(e){var b=e.target.closest('.tab');if(!b)return;TAB=b.dataset.t;
 this.querySelectorAll('.tab').forEach(function(x){x.classList.toggle('on',x===b);});show();};
 function show(){$('view').innerHTML='<div class="k">Loading…</div>';({dash:vDash,dep:vDep,wd:vWd,users:vUsers,coins:vCoins,
-move:vMove,list:vList,audit:vAudit,kyc:vKyc,ctry:vCtry})[TAB]();}
+move:vMove,list:vList,audit:vAudit,kyc:vKyc,ctry:vCtry,spot:vSpot})[TAB]();}
 
 /* ---- dashboard ---- */
 function vDash(){rpc('nx_admin_stats').then(function(s){$('view').innerHTML='<div class="g">'+
@@ -279,6 +279,26 @@ Object.keys(LN).filter(function(k){return d[k];}).map(function(k){return '<span 
 '<div class="k">No applications yet.</div>';});}
 function setL(id,s){rpc('nx_admin_listing_set',{p_id:id,p_status:s,p_note:$('ln'+id).value.trim()||null}).then(function(){
 say('Saved');vList();});}
+
+/* ---- trading ---- */
+function vSpot(){rpc('nx_admin_spot').then(function(s){var st=s.settings||{};$('view').innerHTML='<div class="g">'+
+[['Trades (24h)',s.trades_today],['Volume (24h)',num(Math.round(s.volume_today))+' USDT'],['Open limit orders',s.open_orders]]
+.map(function(x){return '<div class="st"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>';}).join('')+'</div>'+
+'<div class="card" style="margin-top:10px"><div class="bn" style="font-size:15px">Fee income</div>'+((s.fees||[]).map(function(f){
+return '<div class="row" style="justify-content:space-between;padding:5px 0"><b>'+esc(f.asset)+'</b><span>'+num(f.amount)+'</span></div>';})
+.join('')||'<div class="k">No fees yet</div>')+'</div><div class="card"><div class="bn" style="font-size:15px">Busy coins (24h)</div>'+((s.markets||[]).map(function(m){
+return '<div class="row" style="justify-content:space-between;padding:5px 0"><b>'+esc(m.symbol)+'/USDT</b><span>'+m.trades+
+' trades · '+num(Math.round(m.vol))+' USDT</span></div>';}).join('')||'<div class="k">No trades yet</div>')+'</div>'+
+'<div class="card"><div class="bn" style="font-size:15px;margin-bottom:8px">Settings</div>'+'<div style="display:flex;flex-direction:column;gap:8px"><label class="fl">Trading fee (%)<input class="in" id="sf" value="'+
+(+st.taker_fee*100)+'"></label><label class="fl">Minimum order (USDT)<input class="in" id="sm" value="'+num(st.min_order)+'"></label>'+
+'<label class="k" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="se"'+(st.enabled?' checked':'')+
+'> Trading is ON</label><button class="btn gold" onclick="saveSpot()">Save</button></div></div><div class="card"><div class="bn" '+
+'style="font-size:15px;margin-bottom:6px">Recent trades</div>'+((s.recent||[]).map(function(t){return '<div class="row" '+
+'style="justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px"><span>'+num(t.qty)+' '+
+esc(t.symbol)+' @ '+num(t.price)+' <span class="k">buyer '+esc(t.buyer_uid||'')+' · seller '+esc(t.seller_uid||'')+'</span></span>'+
+'<span class="k">'+dt(t.created_at)+'</span></div>';}).join('')||'<div class="k">No trades yet</div>')+'</div>';});}
+function saveSpot(){rpc('nx_admin_spot_settings',{p_fee:(+$('sf').value||0)/100,p_min:+$('sm').value||0,p_enabled:$('se').checked})
+.then(function(){say('Saved');vSpot();});}
 
 /* ---- KYC ---- */
 var KSUB='pending';function setK(s){KSUB=s;vKyc();}
