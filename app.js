@@ -244,6 +244,9 @@ try{var rq=new URLSearchParams(location.search).get('ref');if(rq)localStorage.se
 document.getElementById('aSeg').onclick=function(e){var b=e.target.closest('button');if(b)setMode(b.dataset.m);};
 document.getElementById('aForgot').onclick=function(){setMode('forgot');};
 var SITE=location.origin+location.pathname;
+function mailErr(er,w){var m=(er&&er.message)||'';if(/security purposes|seconds/i.test(m))return 'Please wait a minute and try again.';
+if(/rate limit|sending|smtp|mail/i.test(m)||(er&&er.status===429)){try{sb.rpc('nx_sys_alert',{p_kind:'email_limit',p_detail:w+': '+m.slice(0,200)}).then(function(){},function(){});}catch(x){}
+return 'We could not send the email right now. Please try again after some time.';}return '';}
 document.getElementById('aForm').onsubmit=function(e){e.preventDefault();if(!sb){aMsg('Connection problem. Please refresh the page.');return;}var f=new FormData(this),btn=$('aBtn'),
 email=(f.get('email')||'').trim(),pass=f.get('pass')||'';btn.disabled=true;aMsg('');
 function done(){btn.disabled=false;}
@@ -251,13 +254,13 @@ if(aMode==='up'){if(!f.get('country')){aMsg('Please select your country.');done(
 if(pass.length<8){aMsg('Password must be at least 8 characters.');done();return;}
 sb.auth.signUp({email:email,password:pass,options:{emailRedirectTo:SITE,data:{full_name:f.get('name')||'',
 ref:(f.get('ref')||'').trim().toUpperCase(),country:f.get('country')}}}).then(function(r){done();
-if(r.error){aMsg(/database error/i.test(r.error.message)?'Sign up is not available for the selected country.':r.error.message);return;}
+if(r.error){aMsg(mailErr(r.error,'signup')||(/database error/i.test(r.error.message)?'Sign up is not available for the selected country.':r.error.message));return;}
 aMsg('Account created! We sent a verification link to '+email+'. Open your email and click the link to activate.',1);});}
 else if(aMode==='in'){sb.auth.signInWithPassword({email:email,password:pass}).then(function(r){done();
 if(r.error){aMsg(/confirm/i.test(r.error.message)?'Please verify your email first. Check your inbox for the link.':
 r.error.message);return;}afterLogin();});}
 else if(aMode==='forgot'){sb.auth.resetPasswordForEmail(email,{redirectTo:SITE}).then(function(r){done();
-if(r.error){aMsg(r.error.message);return;}aMsg('Password reset link sent to '+email+'.',1);});}
+if(r.error){aMsg(mailErr(r.error,'reset')||r.error.message);return;}aMsg('Password reset link sent to '+email+'.',1);});}
 else if(aMode==='code'){var code=(f.get('code')||'').trim();sb.auth.mfa.challengeAndVerify({factorId:mfaFactor,code:code})
 .then(function(r){done();if(r.error){aMsg('Wrong code. Try again.');return;}say('Logged in securely');refresh();go('account');});}};
 function afterLogin(){sb.auth.mfa.getAuthenticatorAssuranceLevel().then(function(r){var d=r.data||{};
