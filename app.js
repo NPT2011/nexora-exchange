@@ -803,4 +803,52 @@ var w=setInterval(function(){if(!SUPBUSY){clearInterval(w);supPull();}},150);},f
 $('supIn').onkeydown=function(e){if(e.key==='Enter'&&!e.repeat&&!e.isComposing){e.preventDefault();supSend();}};
 function supAgent(){var nm=ME?null:prompt('Your name (optional)');sb.rpc('nx_sup_agent',{p_token:supTok(),p_name:nm||null}).then(function(r){
 if(r.error){say(errText(r.error));return;}supPull();});}
+/* pair picker, chart view, more menu (trade page) */
+var PTAB='all';function favs(){try{return JSON.parse(localStorage.getItem('nx_fav')||'[]');}catch(e){return [];}}
+function setFavs(l){try{localStorage.setItem('nx_fav',JSON.stringify(l));}catch(e){}}
+function pairOpen(){$('shPair').classList.add('on');$('shOv').classList.add('on');$('pq').value='';pairDraw();}
+function pairClose(){$('shPair').classList.remove('on');if(!$('shMore').classList.contains('on')&&!$('shNet').classList.contains('on'))
+$('shOv').classList.remove('on');}
+$('pTabs').onclick=function(e){var b=e.target.closest('.tab');if(!b)return;PTAB=b.dataset.t;this.querySelectorAll('.tab').forEach(function(x){
+x.classList.toggle('on',x===b);});pairDraw();};
+function pairDraw(){var q=$('pq').value.trim().toUpperCase(),fv=favs(),l=(PTAB==='fav'?fv:COINS).filter(function(c){return T[c]&&c.indexOf(q)>-1;});
+$('pList2').innerHTML=l.slice(0,200).map(function(c){var t=T[c],ch=+t.pct,on=fv.indexOf(c)>-1;return '<div class="crow" data-c="'+c+'" '+
+'style="cursor:pointer"><button type="button" data-f="'+c+'" aria-label="Favorite" style="background:none;border:0;padding:0 8px 0 0;font-size:18px;'+
+'color:'+(on?'var(--gold)':'var(--mut)')+'">'+(on?'★':'☆')+'</button><span class="nm"><b>'+c+'<span style="color:var(--mut);font-weight:400">'+
+' /USDT</span></b><span>Vol '+fv2(t.quoteVolume)+'</span></span><span style="text-align:right"><b style="font-size:14px">'+fp(t.lastPrice)+
+'</b><br><span style="font-size:12px;color:'+(ch>=0?'var(--up)':'var(--dn)')+'">'+(ch>=0?'+':'')+ch.toFixed(2)+'%</span></span></div>';}).join('')||
+'<div style="color:var(--mut);padding:16px 4px;font-size:13px">'+(PTAB==='fav'?'No favorites yet. Tap ☆ to add.':'No coin found')+'</div>';}
+function fv2(v){v=+v||0;return v>=1e9?(v/1e9).toFixed(2)+'B':v>=1e6?(v/1e6).toFixed(2)+'M':v>=1e3?(v/1e3).toFixed(1)+'K':v.toFixed(0);}
+$('pList2').onclick=function(e){var f=e.target.closest('[data-f]');if(f){var l=favs(),c=f.dataset.f,i=l.indexOf(c);if(i>-1)l.splice(i,1);
+else l.push(c);setFavs(l);pairDraw();return;}var r=e.target.closest('[data-c]');if(!r)return;cur=r.dataset.c;pairClose();
+if(location.hash==='#trade')loadTrade();else go('trade');};
+function chOpen(){var o=$('chOv');$('chHost').appendChild($('tfs'));$('chHost').appendChild($('chart'));o.style.display='flex';
+$('chOvT').textContent=cur+'/USDT';$('chOvPx').innerHTML=$('tpx').innerHTML;$('chOvPx').style.color=$('tpx').style.color;drawCandles();}
+function chClose(){var b=$('chBox');b.appendChild($('tfs'));b.appendChild($('chart'));$('chOv').style.display='none';}
+var MORE=[['Preferences','M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4',0],
+['Demo Trading','M6 12h4M8 10v4M15 11h.01M18 13h.01M7 6h10a4 4 0 0 1 4 4v4a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-4a4 4 0 0 1 4-4z',0],
+['History','M12 8v4l3 2M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5','hist'],['Trade Analysis','M21 12A9 9 0 1 1 12 3v9zM15 3.5A9 9 0 0 1 20.5 9H15z',0],
+['Heatmap','M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z',0],['Fee','M19 5L5 19M7 7h.01M17 17h.01','fee'],
+['Trading Parameters','M4 5h7v14H4zM13 5h7v14h-7zM6 9h3M6 12h3M15 9h3M15 12h3','par'],['Announcement','M4 10v4h3l6 4V6L7 10zM17 9a4 4 0 0 1 0 6',0],
+['Help Center','M12 3L2 8l10 5 10-5zM6 10v5c0 1.5 3 3 6 3s6-1.5 6-3v-5','help'],['Add to favorites','M12 3l2.9 6 6.1.6-4.6 4.2 1.4 6.2L12 17l-5.8 3 1.4-6.2L3 9.6 9.1 9z','fav']];
+function moreOpen(){$('moreInfo').style.display='none';$('moreGrid').innerHTML=MORE.map(function(m,i){var fav=m[2]==='fav'&&favs().indexOf(cur)>-1;
+return '<button type="button" data-m="'+i+'" style="background:none;border:0;color:var(--tx);display:flex;flex-direction:column;align-items:center;'+
+'gap:6px;font-size:11.5px;text-align:center"><span style="width:52px;height:52px;border-radius:16px;background:var(--card2);display:flex;'+
+'align-items:center;justify-content:center;position:relative"><svg width="24" height="24" viewBox="0 0 24 24" fill="'+(fav?'var(--gold)':'none')+
+'" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="'+m[1]+'"/></svg>'+(m[2]?'':
+'<span class="soon" style="position:absolute;top:-6px;right:-8px;font-size:9px">Soon</span>')+'</span>'+(m[2]==='fav'&&fav?'Remove favorite':m[0])+
+'</button>';}).join('');$('shMore').classList.add('on');$('shOv').classList.add('on');}
+function moreClose(){$('shMore').classList.remove('on');if(!$('shPair').classList.contains('on')&&!$('shNet').classList.contains('on'))
+$('shOv').classList.remove('on');}
+$('moreGrid').onclick=function(e){var b=e.target.closest('[data-m]');if(!b)return;var m=MORE[+b.dataset.m],a=m[2],inf=$('moreInfo');
+if(!a){say(m[0]+' – coming soon');return;}
+if(a==='hist'){moreClose();OTAB='hist';document.querySelectorAll('#toTabs .tab').forEach(function(x){x.classList.toggle('on',x.dataset.o==='hist');});
+loadOrders();$('toTabs').scrollIntoView({behavior:'smooth'});return;}
+if(a==='help'){moreClose();supOpen();return;}
+if(a==='fav'){var l=favs(),i=l.indexOf(cur);if(i>-1){l.splice(i,1);say(cur+' removed from favorites');}else{l.push(cur);say(cur+'/USDT added to favorites');}
+setFavs(l);moreClose();return;}
+inf.style.display='block';if(a==='fee')inf.innerHTML='<b style="color:var(--tx)">Spot trading fee</b><br>Maker (your order waits on the book): '+
+(SPOTFEE*100).toFixed(2)+'%<br>Taker (your order fills at once): '+(SPOTFEE*100).toFixed(2)+'%<br>The fee is taken from what you receive.';
+else inf.innerHTML='<b style="color:var(--tx)">'+cur+'/USDT trading parameters</b><br>Minimum order: 5 USDT<br>Amount precision: 8 decimals<br>'+
+'Order types: Limit, Market<br>Up to 100 open orders per account<br>Fee: '+(SPOTFEE*100).toFixed(2)+'%';};
 drawHome();show();loadTickers();setInterval(loadTickers,60000);liveTick();
