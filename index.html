@@ -1,17 +1,636 @@
--- NEXORA: bot replies to greetings (hi / hello / namaste)
-create or replace function public.nx_sup_bot(p_text text)
-returns text language sql stable security definer set search_path = public as $$
-  select case
-    when lower(trim(p_text)) ~ '^(hi+|hello+|hey+|hlo|hii|namaste|namaskar|good (morning|afternoon|evening)|salam|assalamualaikum)[\s!.,?]*$'
-      then 'Hello! How can I help you today? You can ask about deposit, withdraw, KYC, P2P, 2FA, trading or fees, or tap "Talk to an agent".'
-    when lower(trim(p_text)) ~ '^(thanks|thank you|thx|ok|okay|ok thanks|dhanyavad)[\s!.,]*$'
-      then 'You are welcome! Ask me anything else, any time.'
-    else (select f.answer from public.nx_faq f
-     where f.enabled and exists (select 1 from unnest(f.keywords) k where lower(p_text) like '%' || lower(k) || '%')
-     order by (select count(*) from unnest(f.keywords) k where lower(p_text) like '%' || lower(k) || '%') desc,
-              (select max(length(k)) from unnest(f.keywords) k where lower(p_text) like '%' || lower(k) || '%') desc, f.sort
-     limit 1)
-  end;
-$$;
-revoke all on function public.nx_sup_bot(text) from public, anon, authenticated;
-select public.nx_sup_bot('Hi') as test;
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nexora Exchange – Buy, Sell &amp; Trade Crypto with USDT</title>
+<meta name="description" content="Nexora Exchange – USDT crypto exchange. Spot trading, Convert, P2P, Copy Trade and Trading Bot.">
+<meta name="theme-color" content="#0B1426">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230B1426'/%3E%3Cpath d='M32 9l20 11.5v23L32 55 12 43.5v-23z' fill='%23E6B450'/%3E%3Cpath d='M24 40V24l16 16V24' fill='none' stroke='%230B1426' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0B1426;--card:#111D36;--card2:#13203A;--line:#1F2D4A;--line2:#16223C;--tx:#E8EDF7;--mut:#8A9BB8;
+--mut2:#9AA9C4;--soft:#C5D0E3;--gold:#E6B450;--gold2:#F2C96F;--up:#3FD39A;--dn:#FF6B7A;--upb:#0E8A5F;--dnb:#C8303F;--nav:#0E1830}
+*{box-sizing:border-box}
+html,body{margin:0;background:#070E1C;color:var(--tx);font-family:Inter,system-ui,sans-serif}
+a{color:var(--gold);text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);display:flex;flex-direction:column}
+.main{flex:1;padding:16px 16px 90px;display:flex;flex-direction:column;gap:16px}
+.hd{display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:8px}
+.bn{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:21px;line-height:1}
+.bx{font-size:8.5px;font-weight:600;letter-spacing:3.2px;color:var(--gold);padding-top:2px}
+.ib{width:44px;height:44px;border:0;background:transparent;color:var(--soft);display:flex;
+align-items:center;justify-content:center}
+.h1{margin:0;font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700}
+.bal{background:linear-gradient(135deg,#16264A,#111D36);border:1px solid #22345A;border-radius:18px;
+padding:18px;display:flex;flex-direction:column;gap:14px}
+.lab{font-size:13px;color:var(--mut2)}
+.big{font-family:'Space Grotesk',sans-serif;font-size:34px;font-weight:700}
+.big small{font-size:15px;color:var(--mut2);font-weight:500}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.btn{height:44px;border:0;border-radius:12px;font-weight:600;font-size:15px;display:flex;align-items:center;
+justify-content:center}
+.gold{background:var(--gold);color:var(--bg)}
+.dark{background:#1E2E52;color:var(--tx)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;
+flex-direction:column;gap:12px}
+.ct{font-weight:600;font-size:15px}
+.steps{display:flex;gap:8px}
+.st{flex:1;background:var(--bg);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.sn{width:26px;height:26px;border-radius:13px;border:1.5px solid var(--gold);color:var(--gold);font-size:13px;
+font-weight:700;display:flex;align-items:center;justify-content:center}
+.stt{font-size:13px;font-weight:600}.std{font-size:11px;color:var(--mut2)}
+.qa{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 6px}
+.q{display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--soft);font-size:11.5px;
+text-align:center;background:none;border:0;padding:0}
+.qi{width:46px;height:46px;border-radius:14px;background:var(--card2);border:1px solid var(--line);
+color:var(--gold);display:flex;align-items:center;justify-content:center}
+.tabs{display:flex;gap:18px;font-size:14px;font-weight:600;border-bottom:1px solid var(--line)}
+.tab{padding:8px 0;color:var(--mut);background:none;border:0;border-bottom:2px solid transparent;
+font-size:14px;font-weight:600}
+.tab.on{color:var(--tx);border-bottom-color:var(--gold)}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line2);color:var(--tx);
+width:100%;background:none;border-left:0;border-right:0;border-top:0;text-align:left}
+.av{width:32px;height:32px;border-radius:16px;background:#1E2E52;color:var(--gold);font-size:12px;
+font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.nm{flex:1;display:flex;flex-direction:column}.nm b{font-size:14px}.nm b i{color:var(--mut);font-weight:400;
+font-style:normal}.nm span{font-size:12px;color:var(--mut)}
+.pr{font-size:14px;font-weight:600;text-align:right}
+.chg{width:78px;height:32px;border-radius:8px;color:#fff;font-size:13px;font-weight:600;display:flex;
+align-items:center;justify-content:center;flex-shrink:0}
+.srch{display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border-radius:12px;
+background:var(--card2);border:1px solid var(--line);color:var(--mut)}
+.srch input{flex:1;height:40px;border:0;background:transparent;color:var(--tx);font-size:14px;outline:none;
+font-family:inherit}
+.nav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;height:64px;background:var(--nav);
+border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));z-index:5}
+.nb{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--mut);
+font-size:11px;background:none;border:0}
+.nb.on{color:var(--gold);font-weight:600}
+.pg{display:none;flex-direction:column;gap:16px}.pg.on{display:flex}
+.chart{height:260px;border-radius:12px;background:#0F1A31;border:1px solid #1A2846;overflow:hidden;position:relative}
+.tfs{display:flex;gap:6px}.tf{height:30px;padding:0 10px;border-radius:8px;border:1px solid var(--line);
+background:transparent;color:var(--mut);font-size:12px;font-weight:600}.tf.on{background:#1F1B0E;color:var(--gold);
+border-color:var(--gold)}
+@keyframes fu{0%{background:rgba(46,189,133,.35)}100%{background:transparent}}
+@keyframes fd{0%{background:rgba(246,70,93,.35)}100%{background:transparent}}
+.fu{animation:fu .9s ease-out;border-radius:6px}.fd{animation:fd .9s ease-out;border-radius:6px}
+.ob{display:flex;justify-content:space-between;padding:3px 4px;font-size:12px}
+.in{height:42px;width:100%;padding:0 10px;border-radius:10px;border:1px solid var(--line);
+background:var(--card2);color:var(--tx);font-size:14px;font-family:inherit}
+.fl{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--mut)}
+.seg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));background:var(--card2);border-radius:10px;padding:3px}
+.seg button{height:36px;border:0;border-radius:8px;font-size:14px;font-weight:700;background:transparent;
+color:var(--mut)}
+.li{width:100%;min-height:50px;border:0;border-bottom:1px solid #18264A;background:transparent;color:var(--tx);
+padding:0 14px;display:flex;align-items:center;gap:12px;text-align:left;font-size:14px}
+.li:last-child{border-bottom:0}
+.li .s{margin-left:auto;font-size:12px;color:var(--mut)}
+.sec{font-size:12px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;padding:4px 2px}
+.grp{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.ref{border-radius:16px;padding:16px;background:linear-gradient(120deg,#3A2E0E,#1A2440);border:1px solid #4A3B14;
+display:flex;align-items:center;gap:12px}
+.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#1E2E52;color:var(--tx);
+padding:12px 16px;border-radius:12px;font-size:13px;border:1px solid var(--gold);opacity:0;pointer-events:none;
+transition:opacity .2s;z-index:9;max-width:90%;text-align:center}
+.toast.on{opacity:1}
+.ov{position:fixed;inset:0;background:rgba(3,7,15,.6);z-index:20;opacity:0;pointer-events:none;transition:opacity .2s}
+.ov.on{opacity:1;pointer-events:auto}
+.dr{position:fixed;top:0;bottom:0;left:0;width:84%;max-width:320px;background:var(--bg);border-right:1px solid var(--line);
+z-index:21;transform:translateX(-105%);transition:transform .25s;display:flex;flex-direction:column;overflow-y:auto}
+.dr.on{transform:none}
+.dh{display:flex;align-items:center;justify-content:space-between;padding:14px 12px 10px 16px;border-bottom:1px solid var(--line)}
+.dg{padding:8px 0;border-bottom:1px solid var(--line2)}
+.dt{font-size:11px;font-weight:600;color:var(--mut);letter-spacing:.6px;text-transform:uppercase;padding:8px 18px 4px}
+.di{width:100%;min-height:46px;border:0;background:transparent;color:var(--tx);display:flex;align-items:center;gap:14px;
+padding:0 18px;font-size:14.5px;text-align:left}
+.di svg{color:var(--gold);flex-shrink:0}.di:active{background:var(--card)}
+.wbox{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+.mrow{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);
+border-radius:16px;padding:16px;color:var(--tx)}
+.mrow b{font-size:16px}.mrow span{font-size:12.5px;color:var(--mut2);line-height:1.4}
+.crow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 4px;background:none;border:0;border-bottom:1px solid var(--line2);
+color:var(--tx);text-align:left}
+.clogo{width:34px;height:34px;border-radius:17px;flex-shrink:0;background:#1E2E52}
+.irow{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;padding:8px 0}
+.irow span:first-child{color:var(--mut2);border-bottom:1px dotted #3A4A6A}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:var(--card);border-top-left-radius:20px;
+border-top-right-radius:20px;border:1px solid var(--line);z-index:31;padding:16px 16px 26px;transform:translateY(105%);transition:transform .25s}
+.sheet.on{transform:none}
+.soon{font-size:10px;padding:2px 6px;border-radius:6px;background:#2A2410;color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="app">
+<main class="main">
+
+<div class="hd">
+<div style="display:flex;align-items:center;gap:2px">
+<button class="ib" aria-label="Open menu" onclick="menu(1)" style="margin-left:-10px"><svg width="24" height="24"
+viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/>
+</svg></button>
+<div class="brand">
+<svg width="34" height="34" viewBox="0 0 64 64" role="img" aria-label="Nexora logo">
+<path d="M32 3l25 14.5v29L32 61 7 46.5v-29z" fill="none" stroke="#E6B450" stroke-width="5" stroke-linejoin="round"/>
+<path d="M22 42V22l20 20V22" fill="none" stroke="#E8EDF7" stroke-width="6" stroke-linecap="round"
+stroke-linejoin="round"/></svg>
+<div><div class="bn">Nexora</div><div class="bx">EXCHANGE</div></div>
+</div>
+</div>
+<div style="display:flex;gap:4px">
+<button class="ib" aria-label="Search" onclick="go('markets')"><svg width="22" height="22" viewBox="0 0 24 24"
+fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/>
+<path d="M20 20l-3.5-3.5"/></svg></button>
+<button class="ib" aria-label="Notifications" onclick="soon()"><svg width="22" height="22" viewBox="0 0 24 24"
+fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg></button>
+</div>
+</div>
+
+<!-- HOME -->
+<section class="pg" id="p-home">
+<div class="bal">
+<div class="lab">Total balance (USDT)</div>
+<div class="big">0.00 <small>≈ $0.00</small></div>
+<div class="g2"><button class="btn gold" onclick="go('addfunds')">Deposit</button>
+<button class="btn dark" onclick="go('withdraw')">Withdraw</button></div>
+</div>
+<div class="card">
+<div class="ct">Get started in 3 steps</div>
+<div class="steps">
+<div class="st"><div class="sn">1</div><div class="stt">Verify email</div><div class="std">and turn on 2FA</div></div>
+<div class="st"><div class="sn">2</div><div class="stt">Deposit USDT</div><div class="std">TRC20 / BEP20 / ERC20</div>
+</div>
+<div class="st"><div class="sn">3</div><div class="stt">First trade</div><div class="std">Spot, Convert or P2P</div>
+</div>
+</div>
+</div>
+<div class="qa" id="qa"></div>
+<div>
+<div class="tabs" id="htabs">
+<button class="tab on" data-k="hot">Hot</button><button class="tab" data-k="up">Gainers</button>
+<button class="tab" data-k="dn">Losers</button><button class="tab" data-k="vol">Volume</button>
+</div>
+<div id="hlist"></div>
+</div>
+</section>
+
+<!-- MARKETS -->
+<section class="pg" id="p-markets">
+<h1 class="h1">Markets</h1>
+<label class="srch"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+<input id="q" type="text" placeholder="Search coin (BTC, ETH…)" aria-label="Search coin"></label>
+<div class="tabs" id="mtabs"><button class="tab on" data-m="spot">Spot (USDT)</button>
+<button class="tab" data-m="bsc">BSC</button><button class="tab" data-m="solana">Solana</button>
+<button class="tab" data-m="fut">Futures <span class="soon">Soon</span></button></div>
+<div id="minfo" style="font-size:12px;color:var(--mut2)"></div>
+<div style="display:flex;font-size:12px;color:var(--mut);padding:0 0 2px">
+<span style="flex:1" id="mh1">Pair / Vol</span><span style="width:110px;text-align:right">Last price</span>
+<span style="width:86px;text-align:right">24h change</span></div>
+<div id="mlist" style="margin-top:-10px"></div>
+<div class="card"><div class="ct">List your token on Nexora</div>
+<div style="font-size:12.5px;color:var(--mut2);line-height:1.5">Projects can apply for listing. Every application
+is checked and reviewed by our team before listing.</div>
+<button class="btn gold" onclick="go('listing')">Apply for listing</button></div>
+</section>
+
+<!-- AUTH -->
+<section class="pg" id="p-auth">
+<h1 class="h1" id="aTitle">Create account</h1>
+<div class="seg" id="aSeg"><button data-m="up">Sign up</button><button data-m="in">Log in</button></div>
+<form id="aForm" style="display:flex;flex-direction:column;gap:10px">
+<label class="fl" id="fName">Full name<input class="in" name="name" autocomplete="name"></label>
+<label class="fl" id="fCountry">Country of residence<select class="in" name="country" id="aCountry"><option value="">Select your country</option></select></label>
+<label class="fl">Email<input class="in" name="email" type="email" required autocomplete="email"></label>
+<label class="fl" id="fPass">Password<input class="in" name="pass" type="password" minlength="8"
+autocomplete="current-password"></label>
+<label class="fl" id="fRef">Referral code (optional)<input class="in" name="ref" placeholder="e.g. NX123456"></label>
+<label class="fl" id="fCode" style="display:none">Google Authenticator code<input class="in" name="code"
+inputmode="numeric" maxlength="6" placeholder="6-digit code"></label>
+<div id="aMsg" style="font-size:13px;line-height:1.5;display:none;padding:10px 12px;border-radius:10px"></div>
+<button class="btn gold" type="submit" id="aBtn">Sign up</button>
+</form>
+<button type="button" id="aForgot" style="background:none;border:0;color:var(--gold);font-size:13px;padding:6px 0">
+Forgot password?</button>
+<div style="font-size:11.5px;color:var(--mut);line-height:1.5">By continuing you agree to the Nexora Terms of Use.
+Never share your password or 2FA code with anyone, including Nexora staff.</div>
+</section>
+
+<!-- NEW PASSWORD -->
+<section class="pg" id="p-newpass">
+<h1 class="h1">Set new password</h1>
+<form id="npForm" style="display:flex;flex-direction:column;gap:10px">
+<label class="fl">New password (min 8)<input class="in" name="p" type="password" minlength="8" required
+autocomplete="new-password"></label>
+<button class="btn gold" type="submit">Save password</button></form>
+</section>
+
+<!-- 2FA -->
+<section class="pg" id="p-2fa">
+<h1 class="h1">Google Authenticator</h1>
+<div id="tfaBox" style="display:flex;flex-direction:column;gap:12px"></div>
+</section>
+
+<!-- LISTING -->
+<section class="pg" id="p-listing">
+<h1 class="h1">Apply for listing</h1>
+<div style="font-size:13px;color:var(--mut2);line-height:1.5">Fill in your project details. Our team will check
+the contract, liquidity and project before approving the listing.</div>
+<form id="lform" style="display:flex;flex-direction:column;gap:10px">
+<div class="sec" style="margin:6px 0 0">Token</div>
+<label class="fl">Project name *<input class="in" name="Project" required></label>
+<label class="fl">Token symbol *<input class="in" name="Symbol" required placeholder="e.g. ABC"></label>
+<label class="fl">Blockchain *<select class="in" name="Chain" required>
+<option>BNB Smart Chain (BEP-20)</option><option>Solana (SPL)</option><option>Ethereum (ERC-20)</option>
+<option>Tron (TRC-20)</option><option>Polygon</option><option>Other</option></select></label>
+<label class="fl">Contract address *<input class="in" name="Contract" required></label>
+<label class="fl">Total supply *<input class="in" name="supply" required inputmode="numeric"></label>
+<label class="fl">Launch date *<input class="in" type="date" name="launch" required></label>
+<label class="fl">Logo image link (PNG, 200×200 or more)<input class="in" name="logo" placeholder="https://"></label>
+<label class="fl">DEX liquidity pool link (PancakeSwap / Raydium etc.) *<input class="in" name="pool" required placeholder="https://"></label>
+<label class="fl">Contract audit report link<input class="in" name="audit" placeholder="https://"></label>
+<div class="sec" style="margin:6px 0 0">Project</div>
+<label class="fl">Website *<input class="in" name="Website" required placeholder="https://"></label>
+<label class="fl">Whitepaper link *<input class="in" name="whitepaper" required placeholder="https://"></label>
+<label class="fl">Telegram *<input class="in" name="Community" required placeholder="https://t.me/…"></label>
+<label class="fl">X (Twitter)<input class="in" name="twitter" placeholder="https://x.com/…"></label>
+<label class="fl">Other links (GitHub, Discord, Medium)<input class="in" name="other"></label>
+<label class="fl">About the project and how the token is used *<textarea class="in" name="About" rows="4" required
+style="height:auto;padding:10px"></textarea></label>
+<label class="fl">Team members (names and roles)<textarea class="in" name="team" rows="3" style="height:auto;padding:10px"></textarea></label>
+<div class="sec" style="margin:6px 0 0">Company and contact</div>
+<label class="fl">Company / organisation name<input class="in" name="company"></label>
+<label class="fl">Company country<input class="in" name="ccountry"></label>
+<label class="fl">Company address<input class="in" name="caddress"></label>
+<label class="fl">Contact person name *<input class="in" name="cname" required></label>
+<label class="fl">Contact person role *<input class="in" name="crole" required placeholder="Founder / CEO / CMO"></label>
+<label class="fl">Contact email *<input class="in" type="email" name="Email" required></label>
+<label class="fl">Contact phone / Telegram username *<input class="in" name="cphone" required></label>
+<label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--mut2);line-height:1.5"><input type="checkbox"
+name="ok" required style="margin-top:3px"> I confirm all information is true. Nexora will check the contract, liquidity, team and
+website, and may ask for more documents. Listing is only after approval.</label>
+<button class="btn gold" type="submit">Submit application</button>
+</form>
+</section>
+
+<!-- TRADE -->
+<section class="pg" id="p-trade">
+<div class="tabs"><button class="tab on">Spot</button><button class="tab" onclick="soon()">Convert</button>
+<button class="tab" onclick="go('p2p')">P2P</button><button class="tab" onclick="soon()">Bot</button>
+<button class="tab" onclick="soon()">Copy</button></div>
+<div class="hd">
+<div><button type="button" onclick="go('markets')" style="background:none;border:0;padding:0;color:var(--tx);display:flex;align-items:center;gap:6px;
+font-family:'Space Grotesk';font-size:20px;font-weight:700"><span id="tpair">BTC/USDT</span><svg width="12" height="12" viewBox="0 0 24 24"
+fill="currentColor"><path d="M4 8h16l-8 9z"/></svg></button>
+<div style="font-size:13px;font-weight:600" id="tpx">—</div></div>
+<div style="display:grid;grid-template-columns:auto auto;gap:2px 14px;font-size:11px;color:var(--mut);
+text-align:right"><span>24h High</span><span style="color:var(--soft)" id="thi">—</span>
+<span>24h Low</span><span style="color:var(--soft)" id="tlo">—</span></div>
+</div>
+<div style="display:flex;gap:12px">
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:9px">
+<div class="seg"><button id="bBuy">Buy</button><button id="bSell">Sell</button></div>
+<div style="display:flex;gap:14px;font-size:13px;font-weight:600"><button type="button" id="oLim" onclick="setOT('limit')"
+style="background:none;border:0;padding:2px 0">Limit</button><button type="button" id="oMkt" onclick="setOT('market')"
+style="background:none;border:0;padding:2px 0">Market</button></div>
+<label class="fl" id="tpL">Price (USDT)<input class="in" id="tprice" inputmode="decimal" oninput="calc('p')"></label>
+<div class="in" id="tpM" style="display:none;align-items:center;color:var(--mut);font-size:13px">Market price</div>
+<label class="fl" id="tqW"><span id="tqL">Amount</span><input class="in" id="tqty" inputmode="decimal" placeholder="0" oninput="calc('q')"></label>
+<div style="padding:4px 2px 0"><input type="range" id="tsl" min="0" max="100" step="1" value="0" oninput="slide()"
+style="width:100%;accent-color:var(--gold)"><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mut)">
+<span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div></div>
+<label class="fl" id="ttW">Total (USDT)<input class="in" id="ttot" inputmode="decimal" placeholder="0" oninput="calc('t')"></label>
+<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--mut)"><span>Avbl</span>
+<span style="color:var(--soft)" id="tav">—</span></div>
+<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--mut)"><span id="tmaxL">Max Buy</span>
+<span style="color:var(--soft)" id="tmax">—</span></div>
+<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--mut)"><span>Est. Fee</span>
+<span style="color:var(--soft)" id="tfee">—</span></div>
+<button class="btn" id="bGo" style="color:#fff" onclick="placeOrder()">Buy</button>
+</div>
+<div style="width:140px;flex-shrink:0;display:flex;flex-direction:column;gap:2px">
+<div class="ob" style="color:var(--mut);font-size:11px"><span>Price</span><span>Amount</span></div>
+<div id="asks" onclick="bookClick(event,'buy')"></div>
+<div style="padding:6px 4px;font-family:'Space Grotesk';font-size:16px;font-weight:700;color:var(--up)"
+id="tmid">—</div>
+<div id="bids" onclick="bookClick(event,'sell')"></div>
+</div>
+</div>
+<div class="tabs" id="toTabs" style="margin-top:4px"><button class="tab on" data-o="open">Open Orders (<span id="toN">0</span>)</button>
+<button class="tab" data-o="hist">Order History</button></div>
+<div id="tOrders" style="font-size:13px;min-height:120px"></div>
+<button type="button" id="chBar" onclick="chToggle()" style="display:flex;justify-content:space-between;align-items:center;width:100%;
+background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--tx);font-size:14px;font-weight:600">
+<span><span id="chName">BTC/USDT</span> Chart</span><svg id="chArr" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"
+style="transform:rotate(180deg)"><path d="M4 8h16l-8 9z"/></svg></button>
+<div id="chBox" style="display:none;flex-direction:column;gap:10px">
+<div class="tfs" id="tfs"><button class="tf" data-i="1m">1m</button><button class="tf on" data-i="15m">15m</button>
+<button class="tf" data-i="1h">1h</button><button class="tf" data-i="4h">4h</button>
+<button class="tf" data-i="1d">1D</button></div>
+<div class="chart" id="chart"></div></div>
+</section>
+
+<!-- WALLET -->
+<section class="pg" id="p-wallet">
+<h1 class="h1">Wallet</h1>
+<div><div class="lab">Est. total value</div>
+<div class="big"><span id="wTot">0.00</span> <small>USDT</small></div></div>
+<div class="tabs" id="wTabs"><button class="tab on" data-a="spot">Spot</button><button class="tab" data-a="funding">Funding (P2P)</button><button class="tab" data-a="futures">Futures</button></div>
+<div class="g3"><button class="btn gold" onclick="go('addfunds')">Deposit</button>
+<button class="btn dark" onclick="go('withdraw')">Withdraw</button>
+<button class="btn dark" onclick="go('transfer')">Transfer</button></div>
+<div class="grp" id="wList"></div>
+<div style="display:flex;justify-content:space-between;align-items:center"><div class="ct">Recent activity</div>
+<button class="tab" style="color:var(--gold)" onclick="go('history')">View all</button></div>
+<div id="wHist"></div>
+</section>
+
+<!-- ADD FUNDS: method -->
+<section class="pg" id="p-addfunds">
+<h1 class="h1">Add funds</h1>
+<div class="lab">Deposit from wallet</div>
+<button class="mrow" onclick="go('depcoin')"><span class="qi" style="flex-shrink:0"><svg width="24" height="24" viewBox="0 0 24 24"
+fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/>
+</svg></span><div style="display:flex;flex-direction:column;gap:4px"><b>Deposit crypto</b><span>Send crypto from another
+exchange or wallet (Binance, Trust Wallet, MetaMask…) to Nexora</span></div></button>
+<div class="lab">Buy crypto</div>
+<button class="mrow" onclick="go('p2p')"><span class="qi" style="flex-shrink:0"><svg width="24" height="24" viewBox="0 0 24 24"
+fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7a3 3 0 1 0 0-.1M16 17a3 3 0 1 0
+0-.1M4 21a4 4 0 0 1 8 0M12 11a4 4 0 0 1 8 0"/></svg></span><div style="display:flex;flex-direction:column;gap:4px"><b>P2P trading</b><span>Buy crypto with bank transfer, UPI and more from other users</span></div></button>
+</section>
+
+<!-- DEPOSIT: select coin -->
+<section class="pg" id="p-depcoin">
+<h1 class="h1">Select coin</h1>
+<label class="srch"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+<input id="dcq" type="text" placeholder="Search coins" aria-label="Search coins"></label>
+<div id="dcLast"></div>
+<div class="lab">All coins</div>
+<div id="dcList"></div>
+</section>
+
+<!-- DEPOSIT: coin page -->
+<section class="pg" id="p-deposit">
+<h1 class="h1" id="dTitle" style="text-align:center">Deposit</h1>
+<button class="wbox" id="dNetBtn" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;color:var(--tx)">
+<div style="flex:1;display:flex;flex-direction:column;gap:4px"><span style="font-size:12px;color:var(--mut2)">Network</span>
+<div><b id="dNetCode" style="font-size:20px"></b> <span id="dNetName" style="font-size:13px;color:var(--mut2)"></span></div>
+<span id="dContract" style="font-size:12px;color:var(--mut2)"></span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A9BB8" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+</button>
+<div class="wbox" id="dIntent" style="display:none"></div>
+<div class="wbox" id="dAddrBox"></div>
+<div id="dInfo" style="padding:0 4px"></div>
+<div id="dNotes" style="font-size:12.5px;color:var(--mut2);line-height:1.7;padding:0 4px"></div>
+<div class="g2"><button class="btn dark" id="dShare">Share address</button>
+<button class="btn gold" id="dSentBtn">I have sent it</button></div>
+<form id="dForm" class="wbox" style="display:none;flex-direction:column;gap:10px">
+<div class="ct">Submit your deposit</div>
+<label class="fl"><span>Amount sent (<span class="dA">USDT</span>)</span><input class="in" name="amount" inputmode="decimal" required></label>
+<label class="fl">Transaction hash (TxID)<input class="in" name="txid" required placeholder="Paste TxID from your wallet"></label>
+<div class="fl">Whose wallet did you send from?
+<div class="seg" id="dSrc"><button type="button" data-s="self">My own wallet (Self)</button>
+<button type="button" data-s="other">Someone else</button></div></div>
+<label class="fl" id="dOther" style="display:none">Name of the wallet owner<input class="in" name="sname"></label>
+<button class="btn gold" type="submit">Submit deposit</button>
+<div style="font-size:12px;color:var(--mut2);line-height:1.5">Status shows <b>Processing</b> while our system checks the
+blockchain. When it is confirmed, it is added to your Spot wallet automatically.</div>
+</form>
+</section>
+
+<!-- WITHDRAW -->
+<section class="pg" id="p-withdraw">
+<h1 class="h1" id="wTitle">Withdraw</h1>
+<div class="lab">Coin</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap" id="wCoins"></div>
+<div class="lab">Network</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap" id="wNets"></div>
+<form id="wForm" style="display:flex;flex-direction:column;gap:10px">
+<label class="fl">Wallet address<input class="in" name="addr" required placeholder="Paste receiving address"></label>
+<label class="fl"><span>Amount (<span class="wA">USDT</span>)</span><input class="in" name="amount" inputmode="decimal" required></label>
+<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--mut)"><span>Available (Spot)</span>
+<span style="color:var(--soft)" id="wAvail">0.00 USDT</span></div>
+<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--mut)"><span>Network fee</span>
+<span style="color:var(--soft)" id="wFee">—</span></div>
+<div style="display:flex;justify-content:space-between;font-size:13px;color:var(--mut)"><span>You will receive</span>
+<span style="color:var(--gold);font-weight:700" id="wRecv">—</span></div>
+<button class="btn gold" type="submit">Withdraw</button>
+</form>
+<div style="font-size:12px;color:var(--mut2);line-height:1.5">Withdrawals need Google Authenticator (2FA). Every
+withdrawal is checked by our team before it is sent. Always double-check the address and network.</div>
+</section>
+
+<!-- TRANSFER -->
+<section class="pg" id="p-transfer">
+<h1 class="h1">Transfer</h1>
+<div style="font-size:13px;color:var(--mut2)">Move coins between your own Nexora wallets. Free and instant.</div>
+<form id="tForm" style="display:flex;flex-direction:column;gap:10px">
+<label class="fl">Coin<select class="in" name="asset" id="tAsset"></select></label>
+<label class="fl">From<select class="in" name="from"><option value="spot">Spot wallet</option>
+<option value="funding">Funding (P2P) wallet</option></select></label>
+<label class="fl">To<select class="in" name="to"><option value="funding">Funding (P2P) wallet</option>
+<option value="spot">Spot wallet</option><option value="futures">Futures wallet (soon)</option></select></label>
+<label class="fl">Amount<input class="in" name="amount" inputmode="decimal" required></label>
+<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--mut)"><span>Available</span>
+<span style="color:var(--soft)" id="tAvail">0.00 USDT</span></div>
+<button class="btn gold" type="submit">Transfer</button>
+</form>
+<div style="font-size:12px;color:var(--mut2);line-height:1.5">To send to an outside wallet (Trust Wallet, MetaMask,
+Binance…), use <a href="#withdraw">Withdraw</a>.</div>
+</section>
+
+<!-- HISTORY -->
+<section class="pg" id="p-history">
+<h1 class="h1">Transaction history</h1>
+<div id="hAll"></div>
+</section>
+
+<!-- P2P -->
+<section class="pg" id="p-p2p">
+<div style="display:flex;justify-content:space-between;align-items:center"><h1 class="h1" style="margin:0">P2P</h1>
+<div style="display:flex;gap:6px"><button class="btn dark" style="height:34px;font-size:12.5px;padding:0 10px" onclick="need()&&go('p2pmy')">Orders</button>
+<button class="btn dark" style="height:34px;font-size:12.5px;padding:0 10px" onclick="need()&&go('p2pads')">My ads</button></div></div>
+<div class="seg" id="pSeg"><button data-s="buy">Buy USDT</button><button data-s="sell">Sell USDT</button></div>
+<div style="display:flex;gap:8px"><select class="in" id="pFiat" style="flex:1"></select><select class="in" id="pPay" style="flex:1.4"></select></div>
+<div id="pList"></div>
+<div style="font-size:11.5px;color:var(--mut);line-height:1.5">USDT is held in escrow by Nexora during every order. Never release USDT before
+the money is really in your own account. Never pay outside the payment details shown in the order.</div>
+</section>
+
+<section class="pg" id="p-p2ptake">
+<h1 class="h1" id="ptT">Buy USDT</h1>
+<div class="wbox" id="ptAd"></div>
+<div class="wbox" style="display:flex;flex-direction:column;gap:10px">
+<label class="fl">I want to pay (<span id="ptF1"></span>)<input class="in" id="ptFiat" inputmode="decimal" oninput="ptCalc('f')"></label>
+<label class="fl">I will receive (USDT)<input class="in" id="ptQty" inputmode="decimal" oninput="ptCalc('q')"></label>
+<label class="fl" id="ptMW">Receive the money in<select class="in" id="ptM"></select></label>
+<div style="font-size:12px;color:var(--mut2)" id="ptInfo"></div>
+<button class="btn gold" id="ptBtn" onclick="ptGo()">Buy USDT</button>
+</div>
+</section>
+
+<section class="pg" id="p-p2porder">
+<div class="wbox" id="poHead"></div>
+<div class="wbox" id="poPay"></div>
+<div id="poBtns" style="display:flex;flex-direction:column;gap:8px"></div>
+<div class="wbox" style="display:flex;flex-direction:column;gap:8px"><div class="ct">Chat</div>
+<div id="poChat" style="display:flex;flex-direction:column;gap:6px;max-height:360px;overflow-y:auto"></div>
+<div style="display:flex;gap:6px"><input class="in" id="poMsg" placeholder="Write a message" style="flex:1">
+<label class="btn dark" style="height:42px;display:flex;align-items:center;padding:0 10px;cursor:pointer" aria-label="Send photo">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/>
+<circle cx="12" cy="12" r="3"/></svg><input type="file" accept="image/*" id="poFile" style="display:none"></label>
+<button class="btn gold" style="height:42px;padding:0 14px" onclick="poSend()">Send</button></div></div>
+</section>
+
+<section class="pg" id="p-p2pmy">
+<h1 class="h1">P2P orders</h1>
+<div class="tabs" id="pmTabs"><button class="tab on" data-t="open">Processing</button><button class="tab" data-t="done">All orders</button></div>
+<div id="pmList"></div>
+</section>
+
+<section class="pg" id="p-p2pads">
+<div style="display:flex;justify-content:space-between;align-items:center"><h1 class="h1" style="margin:0">My ads</h1>
+<button class="btn dark" style="height:34px;font-size:12.5px;padding:0 10px" onclick="go('p2ppay')">Payment methods</button></div>
+<form id="adForm" class="wbox" style="display:flex;flex-direction:column;gap:10px">
+<div class="ct">Post a new ad</div>
+<div class="seg" id="adSeg"><button type="button" data-s="sell">I want to sell USDT</button><button type="button" data-s="buy">I want to buy USDT</button></div>
+<div style="display:flex;gap:8px"><label class="fl" style="flex:1">Currency<select class="in" name="fiat" id="adFiat"></select></label>
+<label class="fl" style="flex:1">My price per USDT<input class="in" name="price" inputmode="decimal" required></label></div>
+<label class="fl">Total USDT<input class="in" name="qty" inputmode="decimal" required></label>
+<div style="font-size:12px;color:var(--mut2)" id="adAv"></div>
+<div style="display:flex;gap:8px"><label class="fl" style="flex:1">Min per order<input class="in" name="min" inputmode="decimal" required></label>
+<label class="fl" style="flex:1">Max per order<input class="in" name="max" inputmode="decimal" required></label></div>
+<div class="fl">Payment methods<div id="adPays" style="display:flex;flex-wrap:wrap;gap:6px;padding-top:4px"></div></div>
+<label class="fl">Payment time limit<select class="in" name="time"><option value="15">15 minutes</option><option value="30">30 minutes</option>
+<option value="45">45 minutes</option><option value="60">60 minutes</option></select></label>
+<label class="fl">Terms (shown to the other side)<textarea class="in" name="terms" rows="2" style="height:auto;padding:10px"></textarea></label>
+<button class="btn gold" type="submit">Post ad</button>
+<div style="font-size:12px;color:var(--mut2);line-height:1.5">Sell ads: the USDT is locked from your Funding wallet until it is sold or you
+close the ad.</div>
+</form>
+<div id="adList"></div>
+</section>
+
+<section class="pg" id="p-p2ppay">
+<h1 class="h1">P2P payment methods</h1>
+<div id="pmMeth"></div>
+<form id="pmForm" class="wbox" style="display:flex;flex-direction:column;gap:10px">
+<div class="ct">Add a payment method</div>
+<label class="fl">Type<select class="in" name="type" id="pmType"></select></label>
+<label class="fl">Account holder name (same as your KYC name)<input class="in" name="name" required></label>
+<label class="fl">Details (UPI ID / account number + IFSC / IBAN / phone)<textarea class="in" name="det" rows="3" required
+style="height:auto;padding:10px"></textarea></label>
+<button class="btn gold" type="submit">Save</button>
+</form>
+</section>
+
+<!-- KYC -->
+<section class="pg" id="p-kyc">
+<h1 class="h1">Identity verification</h1>
+<div class="wbox" id="kycState"></div>
+<form id="kycForm" class="wbox" style="display:none;flex-direction:column;gap:10px">
+<label class="fl">Country of residence<select class="in" name="country" id="kCountry"></select></label>
+<label class="fl">Document type<select class="in" name="doc" id="kDoc"></select></label>
+<label class="fl">Document number<input class="in" name="num" required autocomplete="off"></label>
+<label class="fl">Full name (exactly as on the document)<input class="in" name="name" required></label>
+<label class="fl">Date of birth<input class="in" type="date" name="dob" required></label>
+<label class="fl">Mobile number with country code<input class="in" name="mob" required inputmode="tel" placeholder="+91 98765 43210"></label>
+<label class="fl">Address (optional)<input class="in" name="addr"></label>
+<label class="fl">Document photo – front<input class="in" type="file" name="f1" accept="image/*,application/pdf" style="padding-top:9px" required></label>
+<label class="fl">Document photo – back (if any)<input class="in" type="file" name="f2" accept="image/*,application/pdf" style="padding-top:9px"></label>
+<label class="fl">Selfie holding the document<input class="in" type="file" name="f3" accept="image/*" capture="user" style="padding-top:9px" required></label>
+<button class="btn gold" type="submit" id="kBtn">Submit for verification</button>
+<div style="font-size:12px;color:var(--mut2);line-height:1.5">One person can have only one Nexora account. A document or mobile
+number already used on another account is rejected automatically. Your documents are private.</div>
+</form>
+</section>
+
+<!-- DOCUMENTS FOR A HELD DEPOSIT -->
+<section class="pg" id="p-docs">
+<h1 class="h1">Upload documents</h1>
+<div class="wbox" id="docInfo"></div>
+<form id="docForm" class="wbox" style="display:flex;flex-direction:column;gap:10px">
+<label class="fl">Choose photos or PDF files (up to 6, max 5 MB each)<input class="in" type="file" name="f" multiple
+accept="image/*,application/pdf" style="padding-top:9px"></label>
+<div id="docList" style="font-size:12.5px;color:var(--mut2);line-height:1.6"></div>
+<button class="btn gold" type="submit" id="docBtn">Submit documents</button>
+<div style="font-size:12px;color:var(--mut2);line-height:1.5">Your documents are private. Only you and the Nexora
+verification team can see them.</div>
+</form>
+</section>
+
+<!-- ACCOUNT -->
+<section class="pg" id="p-account">
+<div id="acctTop"></div>
+<div class="ref"><div style="flex:1"><div style="font-weight:700;color:var(--gold2)">Refer &amp; Earn</div>
+<div style="font-size:12.5px;color:#D9DFEA">Earn 15–35% of your friends' trading fees</div></div>
+<button class="btn gold" style="height:40px;padding:0 14px;font-size:13px" onclick="soon()">Invite</button></div>
+<div class="sec">Security</div>
+<div class="grp"><button class="li" onclick="need()&&go('kyc')">Identity verification (KYC)<span class="s" id="sKyc">—</span></button>
+<button class="li" onclick="need()&&go('2fa')">Google Authenticator (2FA)<span class="s" id="s2fa">Off</span></button>
+<button class="li" onclick="need()">Email verification<span class="s" id="sEmail">—</span></button>
+<button class="li" onclick="soon()">Withdrawal whitelist<span class="s">Soon</span></button></div>
+<div class="sec">Trading tools</div>
+<div class="grp"><button class="li" onclick="soon()">API keys (for bots)</button>
+<button class="li" onclick="soon()">Copy trading</button><button class="li" onclick="soon()">Trading bot</button></div>
+<div class="sec">General</div>
+<div class="grp"><button class="li" onclick="go('listing')">List your token</button>
+<button class="li" onclick="soon()">Proof of Reserves</button>
+<button class="li" onclick="soon()">Fee rates</button>
+<button class="li" onclick="supOpen()">Help &amp; support (live chat)</button></div>
+<button class="btn" id="outBtn" onclick="logout()" style="display:none;width:100%;background:transparent;
+border:1px solid #3A2430;color:var(--dn)">Log out</button>
+</section>
+
+</main>
+
+<div class="ov" id="ov" onclick="menu(0)"></div>
+<aside class="dr" id="dr" aria-label="Menu">
+<div class="dh"><div class="brand"><svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true">
+<path d="M32 3l25 14.5v29L32 61 7 46.5v-29z" fill="none" stroke="#E6B450" stroke-width="5" stroke-linejoin="round"/>
+<path d="M22 42V22l20 20V22" fill="none" stroke="#E8EDF7" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg><div><div class="bn" style="font-size:18px">Nexora</div><div class="bx">EXCHANGE</div></div></div>
+<button class="ib" aria-label="Close menu" onclick="menu(0)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div style="padding:14px 16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+<button class="btn gold" style="height:40px;font-size:14px" onclick="menu(0);openAuth('up')">Sign up</button>
+<button class="btn dark" style="height:40px;font-size:14px" onclick="menu(0);openAuth('in')">Log in</button></div>
+<div id="duser" style="display:none;padding:0 16px 14px"></div>
+<div id="dmenu"></div>
+</aside>
+<div class="ov" id="shOv" style="z-index:30" onclick="sheet(0)"></div>
+<div class="sheet" id="shNet"><div class="ct" style="padding-bottom:8px">Choose network</div>
+<div style="font-size:12px;color:#FF9AA5;padding-bottom:8px">Make sure the network matches the one you send from, or your funds may be lost.</div>
+<div id="shList"></div></div>
+<nav class="nav" aria-label="Main" id="nav"></nav>
+<button type="button" id="supBtn" onclick="supOpen()" aria-label="Live chat support" style="position:fixed;right:max(14px,calc(50% - 226px));
+bottom:78px;width:52px;height:52px;border-radius:26px;border:0;background:#0E8A5F;color:#fff;z-index:15;display:flex;align-items:center;
+justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,.4)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>
+<span id="supDot" style="display:none;position:absolute;top:4px;right:4px;width:12px;height:12px;border-radius:6px;background:var(--dn);
+border:2px solid var(--bg)"></span></button>
+<div id="supBox" style="display:none;position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;height:min(82vh,640px);
+background:var(--bg);border:1px solid var(--line);border-top-left-radius:18px;border-top-right-radius:18px;z-index:30;flex-direction:column;
+box-shadow:0 -10px 30px rgba(0,0,0,.5)">
+<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)"><div style="flex:1">
+<b>Nexora Support</b><div style="font-size:11.5px;color:var(--mut)" id="supSt">Assistant</div></div>
+<button type="button" onclick="supClose()" aria-label="Close" style="background:none;border:0;color:var(--tx);font-size:22px;line-height:1">×</button></div>
+<div id="supMsgs" style="flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px"></div>
+<div id="supChips" style="display:flex;gap:6px;overflow-x:auto;padding:6px 14px"></div>
+<div style="display:flex;gap:6px;padding:8px 14px 14px"><input class="in" id="supIn" placeholder="Type your question" style="flex:1"
+maxlength="1500"><button class="btn" style="height:42px;padding:0 14px;background:#0E8A5F;color:#fff" onclick="supSend()">Send</button></div>
+</div>
+<div class="toast" id="toast">Launching soon on Nexora Exchange</div>
+</div>
+
+<script src="app.js?v=13"></script>
+</body>
+</html>
