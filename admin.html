@@ -69,7 +69,7 @@ maxlength="6"></label>
 <div id="panel" style="display:none">
 <div class="tabs" id="tabs">
 <button class="tab on" data-t="dash">Dashboard</button><button class="tab" data-t="dep">Deposits</button>
-<button class="tab" data-t="wd">Withdrawals</button><button class="tab" data-t="spot">Trading</button><button class="tab" data-t="p2p">P2P</button><button class="tab" data-t="users">Users</button><button class="tab" data-t="kyc">KYC</button>
+<button class="tab" data-t="wd">Withdrawals</button><button class="tab" data-t="sup">Support chat</button><button class="tab" data-t="spot">Trading</button><button class="tab" data-t="p2p">P2P</button><button class="tab" data-t="users">Users</button><button class="tab" data-t="kyc">KYC</button>
 <button class="tab" data-t="coins">Coins &amp; QR</button><button class="tab" data-t="move">Fund transfer</button>
 <button class="tab" data-t="list">Listings</button><button class="tab" data-t="ctry">Countries</button><button class="tab" data-t="audit">Audit log</button>
 </div>
@@ -116,8 +116,9 @@ sb.auth.getSession().then(function(s){if(s.data.session)afterPass();});
 
 $('tabs').onclick=function(e){var b=e.target.closest('.tab');if(!b)return;TAB=b.dataset.t;
 this.querySelectorAll('.tab').forEach(function(x){x.classList.toggle('on',x===b);});show();};
-function show(){$('view').innerHTML='<div class="k">Loading…</div>';({dash:vDash,dep:vDep,wd:vWd,users:vUsers,coins:vCoins,
-move:vMove,list:vList,audit:vAudit,kyc:vKyc,ctry:vCtry,spot:vSpot,p2p:vP2p})[TAB]();}
+var SUPTM=null;
+function show(){clearInterval(SUPTM);$('view').innerHTML='<div class="k">Loading…</div>';({dash:vDash,dep:vDep,wd:vWd,users:vUsers,coins:vCoins,
+move:vMove,list:vList,audit:vAudit,kyc:vKyc,ctry:vCtry,spot:vSpot,p2p:vP2p,sup:vSup})[TAB]();}
 
 /* ---- dashboard ---- */
 function vDash(){rpc('nx_admin_stats').then(function(s){$('view').innerHTML='<div class="g">'+
@@ -299,6 +300,56 @@ esc(t.symbol)+' @ '+num(t.price)+' <span class="k">buyer '+esc(t.buyer_uid||'')+
 '<span class="k">'+dt(t.created_at)+'</span></div>';}).join('')||'<div class="k">No trades yet</div>')+'</div>';});}
 function saveSpot(){rpc('nx_admin_spot_settings',{p_fee:(+$('sf').value||0)/100,p_min:+$('sm').value||0,p_enabled:$('se').checked})
 .then(function(){say('Saved');vSpot();});}
+
+/* ---- support chat ---- */
+var SSUB='open',SCHAT=null,SLAST=-1;function setS(x){SSUB=x;SCHAT=null;vSup();}
+function vSup(){clearInterval(SUPTM);if(SCHAT){vChat();return;}if(SSUB==='faq'){vFaq();return;}
+rpc('nx_admin_sup_list',{p_status:SSUB}).then(function(l){$('view').innerHTML='<div class="sub">'+[['open','Waiting / active'],['bot','With bot'],
+['closed','Closed'],['all','All'],['faq','Bot answers']].map(function(x){return '<button class="tab'+(x[0]===SSUB?' on':'')+'" onclick="setS(\''+
+x[0]+'\')">'+x[1]+'</button>';}).join('')+'</div>'+(l.map(function(c){return '<div class="card" style="cursor:pointer" onclick="SCHAT='+c.id+
+';SLAST=-1;vSup()"><div class="row" style="justify-content:space-between"><b>'+esc(c.uid?c.uid+' · '+(c.full_name||c.email):'Visitor'+
+(c.guest_name?' · '+c.guest_name:''))+'</b><span>'+(c.unread_admin?'<span class="pill r1">'+c.unread_admin+' new</span> ':'')+pill(c.status)+
+'</span></div><div class="k" style="margin-top:4px">'+esc((c.last_body||'').slice(0,90))+'</div><div class="k">'+dt(c.last_msg_at)+'</div></div>';})
+.join('')||'<div class="k">No chats here.</div>');});SUPTM=setInterval(function(){if(TAB==='sup'&&!SCHAT&&SSUB!=='faq')vSupQuiet();},8000);}
+function vSupQuiet(){rpc('nx_admin_sup_list',{p_status:SSUB}).then(function(l){var n=l.filter(function(c){return c.unread_admin;}).length;
+if(n){var cur=document.querySelectorAll('#view .card').length;if(cur!==l.length||n)vSup();}});}
+function vChat(){rpc('nx_admin_sup_get',{p_chat:SCHAT}).then(function(d){var c=d.chat,u=d.user,m=d.messages||[];
+if(m.length===SLAST&&$('sbox'))return;SLAST=m.length;var draft=$('sr')?$('sr').value:'';
+$('view').innerHTML='<button class="btn dark" style="margin-bottom:10px" onclick="SCHAT=null;vSup()">← All chats</button><div class="card">'+
+'<div class="row" style="justify-content:space-between"><b>'+(u?esc(u.uid)+' · '+esc(u.name||u.email):'Visitor'+(c.guest_name?' · '+
+esc(c.guest_name):''))+'</b>'+pill(c.status)+'</div>'+(u?'<div class="k" style="margin-top:4px">'+esc(u.email)+' · '+esc(u.country||'')+
+' · KYC '+esc(u.kyc)+' · account '+esc(u.status)+'</div>':'<div class="k">Not logged in</div>')+'</div><div class="card" id="sbox" '+
+'style="display:flex;flex-direction:column;gap:6px;max-height:55vh;overflow-y:auto">'+m.map(function(x){var me=x.from==='agent',sys=
+x.from==='system';return '<div style="max-width:85%;align-self:'+(sys?'center':me?'flex-end':'flex-start')+';background:'+(sys?'transparent':
+me?'#2A2410':x.from==='bot'?'var(--card2)':'#1E2E52')+';border-radius:10px;padding:7px 10px;font-size:13px;white-space:pre-line;color:'+
+(sys?'var(--mut)':'var(--tx)')+'"><span class="k" style="font-size:10.5px">'+({user:'User',bot:'Bot',agent:'You / agent',system:'System'}[x.from])+
+' · '+dt(x.at)+'</span><br>'+esc(x.body)+'</div>';}).join('')+'</div><div class="row"><textarea class="in" id="sr" rows="2" style="flex:1" '+
+'placeholder="Reply"></textarea></div><div class="row" style="margin-top:8px"><button class="btn gold" onclick="sRep()">Send reply</button>'+
+'<button class="btn dark" onclick="sClose()">Close chat</button></div><div class="k" style="margin-top:8px">Never ask for passwords, 2FA codes '+
+'or seed phrases.</div>';$('sr').value=draft;var b=$('sbox');b.scrollTop=b.scrollHeight;});
+clearInterval(SUPTM);SUPTM=setInterval(function(){if(TAB==='sup'&&SCHAT)vChat();},5000);}
+function sRep(){var t=$('sr').value.trim();if(!t)return;$('sr').value='';rpc('nx_admin_sup_reply',{p_chat:SCHAT,p_body:t}).then(function(){
+SLAST=-1;vChat();});}
+function sClose(){if(!confirm('Close this chat?'))return;rpc('nx_admin_sup_close',{p_chat:SCHAT}).then(function(){SCHAT=null;vSup();});}
+function vFaq(){rpc('nx_admin_faq').then(function(l){window._faq=l;$('view').innerHTML='<div class="sub">'+[['open','Waiting / active'],
+['bot','With bot'],['closed','Closed'],['all','All'],['faq','Bot answers']].map(function(x){return '<button class="tab'+(x[0]===SSUB?' on':'')+
+'" onclick="setS(\''+x[0]+'\')">'+x[1]+'</button>';}).join('')+'</div><div class="k" style="margin-bottom:8px">The bot answers when the '+
+'user\'s message contains one of the keywords.</div><button class="btn gold" style="margin-bottom:10px" onclick="eFaq(-1)">+ Add answer</button>'+
+l.map(function(f,i){return '<div class="card"><div class="row" style="justify-content:space-between"><b>'+esc(f.title)+'</b>'+(f.enabled?
+'<span class="pill g1">on</span>':'<span class="pill r1">off</span>')+'</div><div class="k" style="margin:4px 0">Keywords: '+
+esc(f.keywords.join(', '))+'</div><div class="v" style="font-size:13px">'+esc(f.answer)+'</div><div class="row" style="margin-top:8px">'+
+'<button class="btn dark" onclick="eFaq('+i+')">Edit</button><button class="btn bad" onclick="dFaq('+f.id+')">Delete</button></div></div>';})
+.join('');});}
+function eFaq(i){var f=i>=0?window._faq[i]:{title:'',keywords:[],answer:'',sort:100,enabled:true};$('view').innerHTML='<div class="card">'+
+'<div style="display:flex;flex-direction:column;gap:8px"><label class="fl">Title<input class="in" id="ft" value="'+esc(f.title)+'"></label>'+
+'<label class="fl">Keywords (comma separated)<input class="in" id="fk" value="'+esc(f.keywords.join(', '))+'"></label><label class="fl">'+
+'Answer<textarea class="in" id="fa" rows="6">'+esc(f.answer)+'</textarea></label><label class="fl">Order<input class="in" id="fs" value="'+
+f.sort+'"></label><label class="k" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="fe"'+(f.enabled?' checked':'')+
+'> On</label><div class="row"><button class="btn gold" onclick="sFaq('+(f.id||'null')+')">Save</button><button class="btn dark" '+
+'onclick="vFaq()">Cancel</button></div></div></div>';}
+function sFaq(id){rpc('nx_admin_faq_save',{p:{id:id?String(id):'',title:$('ft').value.trim(),keywords:$('fk').value,answer:$('fa').value.trim(),
+sort:+$('fs').value||100,enabled:$('fe').checked}}).then(function(){say('Saved');vFaq();});}
+function dFaq(id){if(!confirm('Delete this answer?'))return;rpc('nx_admin_faq_del',{p_id:id}).then(function(){vFaq();});}
 
 /* ---- P2P ---- */
 var PSUB='appeal';function setP(x){PSUB=x;vP2p();}
