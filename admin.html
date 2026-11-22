@@ -69,7 +69,7 @@ maxlength="6"></label>
 <div id="panel" style="display:none">
 <div class="tabs" id="tabs">
 <button class="tab on" data-t="dash">Dashboard</button><button class="tab" data-t="dep">Deposits</button>
-<button class="tab" data-t="wd">Withdrawals</button><button class="tab" data-t="spot">Trading</button><button class="tab" data-t="users">Users</button><button class="tab" data-t="kyc">KYC</button>
+<button class="tab" data-t="wd">Withdrawals</button><button class="tab" data-t="spot">Trading</button><button class="tab" data-t="p2p">P2P</button><button class="tab" data-t="users">Users</button><button class="tab" data-t="kyc">KYC</button>
 <button class="tab" data-t="coins">Coins &amp; QR</button><button class="tab" data-t="move">Fund transfer</button>
 <button class="tab" data-t="list">Listings</button><button class="tab" data-t="ctry">Countries</button><button class="tab" data-t="audit">Audit log</button>
 </div>
@@ -117,7 +117,7 @@ sb.auth.getSession().then(function(s){if(s.data.session)afterPass();});
 $('tabs').onclick=function(e){var b=e.target.closest('.tab');if(!b)return;TAB=b.dataset.t;
 this.querySelectorAll('.tab').forEach(function(x){x.classList.toggle('on',x===b);});show();};
 function show(){$('view').innerHTML='<div class="k">Loading…</div>';({dash:vDash,dep:vDep,wd:vWd,users:vUsers,coins:vCoins,
-move:vMove,list:vList,audit:vAudit,kyc:vKyc,ctry:vCtry,spot:vSpot})[TAB]();}
+move:vMove,list:vList,audit:vAudit,kyc:vKyc,ctry:vCtry,spot:vSpot,p2p:vP2p})[TAB]();}
 
 /* ---- dashboard ---- */
 function vDash(){rpc('nx_admin_stats').then(function(s){$('view').innerHTML='<div class="g">'+
@@ -299,6 +299,42 @@ esc(t.symbol)+' @ '+num(t.price)+' <span class="k">buyer '+esc(t.buyer_uid||'')+
 '<span class="k">'+dt(t.created_at)+'</span></div>';}).join('')||'<div class="k">No trades yet</div>')+'</div>';});}
 function saveSpot(){rpc('nx_admin_spot_settings',{p_fee:(+$('sf').value||0)/100,p_min:+$('sm').value||0,p_enabled:$('se').checked})
 .then(function(){say('Saved');vSpot();});}
+
+/* ---- P2P ---- */
+var PSUB='appeal';function setP(x){PSUB=x;vP2p();}
+function vP2p(){rpc('nx_admin_p2p',{p_status:PSUB}).then(function(d){var st=d.settings||{},c=d.counts||{};
+$('view').innerHTML='<div class="sub">'+[['appeal','Appeals ('+(c.appeal||0)+')'],['open','Open'],['completed','Completed'],
+['cancelled','Cancelled'],['all','All']].map(function(x){return '<button class="tab'+(x[0]===PSUB?' on':'')+'" onclick="setP(\''+x[0]+
+'\')">'+x[1]+'</button>';}).join('')+'</div>'+((d.orders||[]).map(function(o){var open=['pending','paid','appeal'].indexOf(o.status)>-1;
+return '<div class="card"><div class="row" style="justify-content:space-between"><b>#'+o.id+' · '+num(o.qty)+' USDT · '+num(o.fiat_amount)+
+' '+esc(o.fiat)+'</b>'+pill(o.status)+'</div><div class="kv"><span class="k">Buyer</span><span class="v">'+esc(o.buyer_uid)+' · '+
+esc(o.buyer_name||'')+'</span><span class="k">Seller</span><span class="v">'+esc(o.seller_uid)+' · '+esc(o.seller_name||'')+'</span>'+
+'<span class="k">Price</span><span class="v">'+num(o.price)+' '+esc(o.fiat)+'</span><span class="k">Pay to</span><span class="v">'+
+(o.pay_methods||[]).map(function(m){return esc(m.type)+': '+esc(m.name)+' · '+esc(m.details);}).join('<br>')+'</span>'+
+'<span class="k">Created</span><span class="v">'+dt(o.created_at)+'</span>'+(o.paid_at?'<span class="k">Marked paid</span><span class="v">'+
+dt(o.paid_at)+'</span>':'')+(o.appeal_reason?'<span class="k">Appeal</span><span class="v" style="color:var(--gold)">'+
+esc(o.appeal_reason)+'</span>':'')+(o.admin_note?'<span class="k">Decision</span><span class="v">'+esc(o.admin_note)+'</span>':'')+
+(o.cancel_reason?'<span class="k">Cancel</span><span class="v">'+esc(o.cancel_reason)+'</span>':'')+'</div><details><summary class="k" '+
+'style="cursor:pointer">Chat ('+(o.messages||[]).length+')</summary><div style="display:flex;flex-direction:column;gap:4px;margin-top:6px">'+
+(o.messages||[]).map(function(m){return '<div style="font-size:12.5px;background:var(--card2);border-radius:8px;padding:6px 8px"><b '+
+'style="color:'+(m.sender==='Buyer'?'var(--up)':m.sender==='Seller'?'var(--dn)':'var(--gold)')+'">'+m.sender+'</b> <span class="k">'+
+dt(m.at)+'</span><div style="white-space:pre-line">'+esc(m.body||'')+'</div>'+(m.file?'<button class="btn dark" style="height:28px;'+
+'font-size:12px;margin-top:4px" onclick="p2pImg(\''+esc(m.file)+'\')">Open photo</button>':'')+'</div>';}).join('')+'</div></details>'+
+(open?'<input class="in" id="pn'+o.id+'" placeholder="Decision note / message to both" style="margin-top:8px"><div class="row" '+
+'style="margin-top:8px"><button class="btn dark" onclick="p2pMsg('+o.id+')">Send message</button><button class="btn ok" onclick="p2pRes('+
+o.id+',\'buyer\')">Release to buyer</button><button class="btn bad" onclick="p2pRes('+o.id+',\'seller\')">Return to seller</button></div>':
+'')+'</div>';}).join('')||'<div class="k">Nothing here.</div>')+'<div class="card"><div class="bn" style="font-size:15px;margin-bottom:8px">'+
+'P2P settings</div><div style="display:flex;flex-direction:column;gap:8px"><label class="k" style="display:flex;gap:6px;align-items:center">'+
+'<input type="checkbox" id="pk"'+(st.kyc_required?' checked':'')+'> KYC needed for P2P</label><label class="fl">P2P fee from buyer (%)'+
+'<input class="in" id="pf" value="'+(+st.fee*100)+'"></label><label class="k" style="display:flex;gap:6px;align-items:center"><input '+
+'type="checkbox" id="pe"'+(st.enabled?' checked':'')+'> P2P is ON</label><button class="btn gold" onclick="p2pSet()">Save</button></div></div>';});}
+function p2pImg(p){sb.storage.from('p2p').createSignedUrl(p,600).then(function(r){if(r.error){say(r.error.message);return;}window.open(r.data.signedUrl,'_blank');});}
+function p2pMsg(id){var t=$('pn'+id).value.trim();if(!t){say('Write a message');return;}rpc('nx_admin_p2p_msg',{p_order:id,p_body:t}).then(function(){say('Sent');vP2p();});}
+function p2pRes(id,w){var n=$('pn'+id).value.trim();if(!n){say('Write the decision note');return;}if(!confirm(w==='buyer'?
+'Release the USDT to the BUYER?':'Return the USDT to the SELLER?'))return;rpc('nx_admin_p2p_resolve',{p_order:id,p_winner:w,p_note:n})
+.then(function(){say('Done');vP2p();});}
+function p2pSet(){rpc('nx_admin_p2p_settings',{p_kyc:$('pk').checked,p_fee:(+$('pf').value||0)/100,p_enabled:$('pe').checked}).then(function(){
+say('Saved');vP2p();});}
 
 /* ---- KYC ---- */
 var KSUB='pending';function setK(s){KSUB=s;vKyc();}
