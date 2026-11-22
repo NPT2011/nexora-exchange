@@ -209,7 +209,7 @@ $('bids').innerHTML=o.bids.length?obRows(o.bids.slice(0,7),'var(--up)','46,189,1
 var m=$('tmid');m.textContent=o.last!=null?fp(o.last):'—';m.style.color='var(--tx)';BOOK=o;if(CHO)chBook();}
 function loadTrade(){$('tprice').value='';$('tqty').value='';head();if(CHO){chHead();chPerf();}setSide(side);tUser();var sym=cur+'USDT';
 document.querySelectorAll('#tfs .tf').forEach(function(b){b.classList.toggle('on',b.dataset.i===TF);});
-fetch(API+'klines?symbol='+sym+'&interval='+TF+'&limit=70').then(function(r){return r.json();}).then(function(k){
+fetch(API+'klines?symbol='+sym+'&interval='+TF+'&limit=200').then(function(r){return r.json();}).then(function(k){
 if(!Array.isArray(k))return;KL=k.map(function(x){return [x[0],+x[1],+x[2],+x[3],+x[4],+x[5]];});drawCandles();})
 .catch(function(){});
 loadBook();
