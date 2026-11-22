@@ -1,0 +1,258 @@
+name: Build Nexora Android APK
+
+on:
+  push:
+    paths:
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Write app files
+        run: |
+          mkdir -p nxapp && cd nxapp
+          cat > settings.gradle <<'NXEOF0'
+          pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+          dependencyResolutionManagement { repositories { google(); mavenCentral() } }
+          rootProject.name = 'nexora'
+          NXEOF0
+          cat > gradle.properties <<'NXEOF1'
+          org.gradle.jvmargs=-Xmx2g
+          android.useAndroidX=false
+          NXEOF1
+          cat > build.gradle <<'NXEOF2'
+          plugins { id 'com.android.application' version '8.5.2' }
+          android {
+              namespace 'io.nexorax.app'
+              compileSdk 34
+              defaultConfig {
+                  applicationId 'io.nexorax.app'
+                  minSdk 26
+                  targetSdk 34
+                  versionCode((System.getenv('NX_VCODE') ?: '1') as int)
+                  versionName '1.0.' + (System.getenv('NX_VCODE') ?: '1')
+              }
+              signingConfigs {
+                  release {
+                      storeFile file(System.getenv('NX_KS_FILE') ?: 'nx.jks')
+                      storePassword System.getenv('NX_KS_PASS')
+                      keyAlias 'nexora'
+                      keyPassword System.getenv('NX_KS_PASS')
+                  }
+              }
+              buildTypes { release { minifyEnabled false; signingConfig signingConfigs.release } }
+              lint { checkReleaseBuilds false; abortOnError false }
+              compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+          }
+          NXEOF2
+          mkdir -p src/main
+          cat > src/main/AndroidManifest.xml <<'NXEOF3'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application android:label="Nexora" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher"
+                  android:theme="@style/NxTheme" android:allowBackup="false" android:usesCleartextTraffic="false">
+                  <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask"
+                      android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|uiMode"
+                      android:windowSoftInputMode="adjustResize">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          NXEOF3
+          mkdir -p src/main/java/io/nexorax/app
+          cat > src/main/java/io/nexorax/app/MainActivity.java <<'NXEOF4'
+          package io.nexorax.app;
+
+          import android.app.Activity;
+          import android.content.Intent;
+          import android.graphics.Color;
+          import android.net.Uri;
+          import android.os.Bundle;
+          import android.view.View;
+          import android.view.Window;
+          import android.webkit.ValueCallback;
+          import android.webkit.WebChromeClient;
+          import android.webkit.WebResourceError;
+          import android.webkit.WebResourceRequest;
+          import android.webkit.WebSettings;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+
+          public class MainActivity extends Activity {
+              static final String HOME = "https://nexora-exchange-eosin.vercel.app/";
+              static final String[] HOSTS = {"nexora-exchange-eosin.vercel.app", "nexorax.io", "www.nexorax.io"};
+              static final int PICK = 7;
+              WebView web;
+              ValueCallback<Uri[]> pickCb;
+
+              @Override
+              protected void onCreate(Bundle b) {
+                  super.onCreate(b);
+                  Window w = getWindow();
+                  w.setStatusBarColor(Color.parseColor("#0B1426"));
+                  w.setNavigationBarColor(Color.parseColor("#0B1426"));
+                  web = new WebView(this);
+                  web.setBackgroundColor(Color.parseColor("#0B1426"));
+                  setContentView(web);
+                  WebSettings s = web.getSettings();
+                  s.setJavaScriptEnabled(true);
+                  s.setDomStorageEnabled(true);
+                  s.setDatabaseEnabled(true);
+                  s.setAllowFileAccess(false);
+                  s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+                  s.setUserAgentString(s.getUserAgentString() + " NexoraApp/1");
+                  web.setWebViewClient(new WebViewClient() {
+                      @Override
+                      public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
+                          Uri u = r.getUrl();
+                          String h = u.getHost();
+                          if ("https".equals(u.getScheme()) && h != null) {
+                              for (String x : HOSTS) if (x.equalsIgnoreCase(h)) return false;
+                          }
+                          openOutside(u);
+                          return true;
+                      }
+
+                      @Override
+                      public void onReceivedError(WebView v, WebResourceRequest r, WebResourceError e) {
+                          if (r.isForMainFrame()) {
+                              v.loadDataWithBaseURL(null, OFFLINE, "text/html", "utf-8", null);
+                          }
+                      }
+                  });
+                  web.setWebChromeClient(new WebChromeClient() {
+                      @Override
+                      public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> cb, FileChooserParams p) {
+                          if (pickCb != null) pickCb.onReceiveValue(null);
+                          pickCb = cb;
+                          try {
+                              startActivityForResult(p.createIntent(), PICK);
+                          } catch (Exception ex) {
+                              pickCb = null;
+                              return false;
+                          }
+                          return true;
+                      }
+                  });
+                  web.setDownloadListener((url, ua, cd, mime, len) -> openOutside(Uri.parse(url)));
+                  if (b != null) web.restoreState(b);
+                  else web.loadUrl(HOME);
+              }
+
+              void openOutside(Uri u) {
+                  try {
+                      startActivity(new Intent(Intent.ACTION_VIEW, u));
+                  } catch (Exception ignored) {
+                  }
+              }
+
+              @Override
+              protected void onActivityResult(int req, int res, Intent data) {
+                  if (req == PICK && pickCb != null) {
+                      pickCb.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(res, data));
+                      pickCb = null;
+                      return;
+                  }
+                  super.onActivityResult(req, res, data);
+              }
+
+              @Override
+              protected void onSaveInstanceState(Bundle o) {
+                  super.onSaveInstanceState(o);
+                  web.saveState(o);
+              }
+
+              @Override
+              public void onBackPressed() {
+                  if (web.canGoBack()) web.goBack();
+                  else super.onBackPressed();
+              }
+
+              static final String OFFLINE = "<html><head><meta name='viewport' content='width=device-width,initial-scale=1'></head>"
+                  + "<body style='margin:0;background:#0B1426;color:#E8EDF7;font-family:sans-serif;display:flex;align-items:center;"
+                  + "justify-content:center;height:100vh;text-align:center'><div><h2 style='color:#E6B450'>No internet</h2>"
+                  + "<p>Please check your connection.</p><a href='" + HOME + "' style='display:inline-block;margin-top:10px;"
+                  + "padding:12px 26px;background:#E6B450;color:#0B1426;border-radius:10px;text-decoration:none;font-weight:700'>"
+                  + "Try again</a></div></body></html>";
+          }
+          NXEOF4
+          mkdir -p src/main/res/values
+          cat > src/main/res/values/styles.xml <<'NXEOF5'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="NxTheme" parent="@android:style/Theme.Material.NoActionBar">
+                  <item name="android:windowBackground">@color/nx_bg</item>
+                  <item name="android:statusBarColor">@color/nx_bg</item>
+                  <item name="android:navigationBarColor">@color/nx_bg</item>
+              </style>
+              <color name="nx_bg">#0B1426</color>
+          </resources>
+          NXEOF5
+          mkdir -p src/main/res/mipmap-anydpi-v26
+          cat > src/main/res/mipmap-anydpi-v26/ic_launcher.xml <<'NXEOF6'
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@color/nx_bg" />
+              <foreground android:drawable="@drawable/ic_fg" />
+          </adaptive-icon>
+          NXEOF6
+          mkdir -p src/main/res/drawable
+          cat > src/main/res/drawable/ic_fg.xml <<'NXEOF7'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp"
+              android:viewportWidth="108" android:viewportHeight="108">
+              <group android:translateX="30" android:translateY="30" android:scaleX="0.75" android:scaleY="0.75">
+                  <path android:pathData="M32,3l25,14.5v29L32,61 7,46.5v-29z" android:strokeColor="#E6B450" android:strokeWidth="5"
+                      android:strokeLineJoin="round" android:fillColor="#00000000" />
+                  <path android:pathData="M22,42V22l20,20V22" android:strokeColor="#E8EDF7" android:strokeWidth="6"
+                      android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" />
+              </group>
+          </vector>
+          NXEOF7
+
+      - name: Signing key
+        env:
+          NX_SIGN: ${{ secrets.NX_SIGN }}
+        run: |
+          if [ -z "$NX_SIGN" ]; then echo "Secret NX_SIGN is missing. Add it in Settings > Secrets and variables > Actions."; exit 1; fi
+          PASS="${NX_SIGN%%:*}"
+          echo "::add-mask::$PASS"
+          echo "${NX_SIGN#*:}" | base64 -d > "$RUNNER_TEMP/nx.jks"
+          echo "NX_KS_PASS=$PASS" >> "$GITHUB_ENV"
+          echo "NX_KS_FILE=$RUNNER_TEMP/nx.jks" >> "$GITHUB_ENV"
+
+      - name: Build APK
+        env:
+          NX_VCODE: ${{ github.run_number }}
+        run: |
+          cd nxapp
+          gradle assembleRelease --no-daemon
+          cp "$(find build/outputs/apk/release -name '*.apk' | head -1)" ../nexora.apk
+          ls -la ../nexora.apk
+
+      - name: Publish download
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app-v${{ github.run_number }}
+          name: Nexora Android App v1.0.${{ github.run_number }}
+          body: Nexora Exchange Android app.
+          files: nexora.apk
+          make_latest: true
