@@ -128,7 +128,16 @@ function vDash(){rpc('nx_admin_stats').then(function(s){$('view').innerHTML='<di
 'style="font-size:15px">User funds held</div>'+((s.balances||[]).map(function(b){return '<div class="row" style="justify-content:'+
 'space-between;padding:6px 0;border-bottom:1px solid var(--line)"><b>'+esc(b.asset)+'</b><span>'+num(b.balance)+
 (+b.locked?' <span class="k">(+'+num(b.locked)+' in withdrawal)</span>':'')+'</span></div>';}).join('')||
-'<div class="k">No balances yet</div>')+'</div>';});}
+'<div class="k">No balances yet</div>')+'</div>';vAlerts();});}
+function vAlerts(){sb.rpc('nx_admin_alerts').then(function(r){var d=r.data;if(r.error||!d||!d.unseen)return;var v=$('view'),
+h='<div class="card" style="border-color:#E5484D;background:#2A1218"><div class="bn" style="font-size:15px;color:#FF6B6B">'+
+'\u26A0 Alert: email sending limit reached</div><div class="k" style="margin:6px 0 8px">Users could not get sign-up / password-reset '+
+'emails. They were shown "please try again after some time". Fix: set up Brevo SMTP in Supabase.</div>'+
+d.list.filter(function(a){return !a.seen;}).map(function(a){return '<div style="padding:4px 0;font-size:13px">'+
+new Date(a.last_at).toLocaleString()+' \u2014 <b>'+a.hits+'</b> times<br><span class="k">'+esc(a.detail||'')+'</span></div>';}).join('')+
+'<button class="btn" style="background:#E5484D;color:#fff;margin-top:8px" onclick="alSeen()">OK, mark as seen</button></div>';
+v.insertAdjacentHTML('afterbegin',h);});}
+function alSeen(){rpc('nx_admin_alert_seen',{p_id:null}).then(function(){say('Marked as seen');vDash();});}
 
 /* ---- deposits ---- */
 function sub(cur,fn){return '<div class="sub">'+[['open','Open'],['approved','Approved'],['rejected','Rejected'],['all','All']]
