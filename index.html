@@ -299,20 +299,35 @@ text-align:right"><span>24h High</span><span style="color:var(--soft)" id="thi">
 <div style="display:flex;gap:12px">
 <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:9px">
 <div class="seg"><button id="bBuy">Buy</button><button id="bSell">Sell</button></div>
-<label class="fl">Price (USDT)<input class="in" id="tprice"></label>
-<label class="fl">Amount<input class="in" placeholder="0.00000"></label>
-<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--mut)"><span>Available</span>
-<span style="color:var(--soft)">0.00 USDT</span></div>
-<button class="btn" id="bGo" style="color:#fff" onclick="soon()">Buy</button>
+<div style="display:flex;gap:14px;font-size:13px;font-weight:600"><button type="button" id="oLim" onclick="setOT('limit')"
+style="background:none;border:0;padding:2px 0">Limit</button><button type="button" id="oMkt" onclick="setOT('market')"
+style="background:none;border:0;padding:2px 0">Market</button></div>
+<label class="fl" id="tpL">Price (USDT)<input class="in" id="tprice" inputmode="decimal" oninput="calc('p')"></label>
+<div class="in" id="tpM" style="display:none;align-items:center;color:var(--mut);font-size:13px">Market price</div>
+<label class="fl" id="tqW"><span id="tqL">Amount</span><input class="in" id="tqty" inputmode="decimal" placeholder="0" oninput="calc('q')"></label>
+<div style="padding:4px 2px 0"><input type="range" id="tsl" min="0" max="100" step="1" value="0" oninput="slide()"
+style="width:100%;accent-color:var(--gold)"><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mut)">
+<span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div></div>
+<label class="fl" id="ttW">Total (USDT)<input class="in" id="ttot" inputmode="decimal" placeholder="0" oninput="calc('t')"></label>
+<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--mut)"><span>Avbl</span>
+<span style="color:var(--soft)" id="tav">—</span></div>
+<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--mut)"><span id="tmaxL">Max Buy</span>
+<span style="color:var(--soft)" id="tmax">—</span></div>
+<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--mut)"><span>Est. Fee</span>
+<span style="color:var(--soft)" id="tfee">—</span></div>
+<button class="btn" id="bGo" style="color:#fff" onclick="placeOrder()">Buy</button>
 </div>
 <div style="width:140px;flex-shrink:0;display:flex;flex-direction:column;gap:2px">
 <div class="ob" style="color:var(--mut);font-size:11px"><span>Price</span><span>Amount</span></div>
-<div id="asks"></div>
+<div id="asks" onclick="bookClick(event,'buy')"></div>
 <div style="padding:6px 4px;font-family:'Space Grotesk';font-size:16px;font-weight:700;color:var(--up)"
 id="tmid">—</div>
-<div id="bids"></div>
+<div id="bids" onclick="bookClick(event,'sell')"></div>
 </div>
 </div>
+<div class="tabs" id="toTabs" style="margin-top:4px"><button class="tab on" data-o="open">Open orders</button>
+<button class="tab" data-o="hist">Order history</button></div>
+<div id="tOrders" style="font-size:13px"></div>
 </section>
 
 <!-- WALLET -->
@@ -683,13 +698,13 @@ if(location.hash==='#trade')head();}).catch(function(){});}
 function setSide(s){side=s;var b=s==='buy';$('bBuy').style.background=b?'var(--upb)':'transparent';
 $('bBuy').style.color=b?'#fff':'var(--mut)';$('bSell').style.background=b?'transparent':'var(--dnb)';
 $('bSell').style.color=b?'var(--mut)':'#fff';$('bGo').style.background=b?'var(--upb)':'var(--dnb)';
-$('bGo').textContent=(b?'Buy ':'Sell ')+cur;}
+$('bGo').textContent=(b?'Buy ':'Sell ')+cur;setOT(OT);}
+
 $('bBuy').onclick=function(){setSide('buy');};$('bSell').onclick=function(){setSide('sell');};
 function head(){var t=T[cur];$('tpair').textContent=cur+'/USDT';if(!t)return;var ch=+t.pct;
 $('tpx').textContent=fp(t.lastPrice)+' · '+(ch>=0?'+':'')+ch.toFixed(2)+'%';
 $('tpx').style.color=ch>=0?'var(--up)':'var(--dn)';$('thi').textContent=fp(t.highPrice);
-$('tlo').textContent=fp(t.lowPrice);$('tmid').textContent=fp(t.lastPrice);
-if(!$('tprice').value)$('tprice').value=fp(t.lastPrice);}
+$('tlo').textContent=fp(t.lowPrice);}
 var TF='15m',KL=[],tws=null;
 function drawCandles(){var k=KL.slice(-70);if(!k.length)return;var W=400,H=260,pad=46,top=10,bot=22;
 var hi=Math.max.apply(0,k.map(function(x){return x[2];})),lo=Math.min.apply(0,k.map(function(x){return x[3];}));
@@ -708,19 +723,21 @@ o+='<line x1="0" x2="'+(W-pad)+'" y1="'+ly+'" y2="'+ly+'" stroke="'+lc+'" stroke
 '" fill="#fff" font-size="9" font-weight="700">'+fp(L[4])+'</text>';
 $('chart').innerHTML='<svg viewBox="0 0 400 260" preserveAspectRatio="none" width="100%" height="100%">'+o+'</svg>';}
 function obRows(a,col,rgb){var m=Math.max.apply(0,a.map(function(x){return +x[1];}))||1;
-return a.map(function(x){var p=Math.round(+x[1]/m*100);return '<div class="ob" style="background:linear-gradient'+
+return a.map(function(x){var p=Math.round(+x[1]/m*100);return '<div class="ob" data-pr="'+x[0]+'" data-am="'+x[1]+'" style="cursor:pointer;background:linear-gradient'+
 '(to left,rgba('+rgb+',.16) '+p+'%,transparent '+p+'%)"><span style="color:'+col+'">'+fp(x[0])+
 '</span><span style="color:var(--soft)">'+(+x[1]).toFixed(3)+'</span></div>';}).join('');}
-function drawBook(o){if(!o||!o.asks)return;$('asks').innerHTML=obRows(o.asks.slice(0,6).reverse(),'var(--dn)','246,70,93');
-$('bids').innerHTML=obRows(o.bids.slice(0,6),'var(--up)','46,189,133');}
-function loadTrade(){$('tprice').value='';head();setSide(side);var sym=cur+'USDT';
-document.querySelectorAll('.tf').forEach(function(b){b.classList.toggle('on',b.dataset.i===TF);});
+function drawBook(o){if(!o||!o.asks)return;var e='<div class="ob" style="color:var(--mut)"><span>No orders</span><span></span></div>';
+$('asks').innerHTML=o.asks.length?obRows(o.asks.slice(0,7).reverse(),'var(--dn)','246,70,93'):e;
+$('bids').innerHTML=o.bids.length?obRows(o.bids.slice(0,7),'var(--up)','46,189,133'):e;
+var m=$('tmid');m.textContent=o.last!=null?fp(o.last):'—';m.style.color='var(--tx)';BOOK=o;}
+function loadTrade(){$('tprice').value='';$('tqty').value='';head();setSide(side);tUser();var sym=cur+'USDT';
+document.querySelectorAll('#tfs .tf').forEach(function(b){b.classList.toggle('on',b.dataset.i===TF);});
 fetch(API+'klines?symbol='+sym+'&interval='+TF+'&limit=70').then(function(r){return r.json();}).then(function(k){
 if(!Array.isArray(k))return;KL=k.map(function(x){return [x[0],+x[1],+x[2],+x[3],+x[4]];});drawCandles();})
 .catch(function(){});
-fetch(API+'depth?symbol='+sym+'&limit=10').then(function(r){return r.json();}).then(drawBook).catch(function(){});
+loadBook();
 if(tws){tws.onclose=null;tws.close();}var s=sym.toLowerCase();
-try{tws=new WebSocket(WSS+'stream?streams='+s+'@kline_'+TF+'/'+s+'@depth10@1000ms');}catch(e){return;}
+try{tws=new WebSocket(WSS+'stream?streams='+s+'@kline_'+TF);}catch(e){return;}
 tws.onmessage=function(ev){var m=JSON.parse(ev.data),d=m.data;if(!d)return;
 if(d.k){var q=d.k,c=[q.t,+q.o,+q.h,+q.l,+q.c];if(KL.length&&KL[KL.length-1][0]===q.t)KL[KL.length-1]=c;
 else KL.push(c);drawCandles();}else if(d.asks)drawBook(d);};
@@ -742,7 +759,7 @@ document.querySelectorAll('[data-cb="'+c+'"]').forEach(function(el){el.textConte
 el.style.background=up?'var(--upb)':'var(--dnb)';});
 document.querySelectorAll('[data-ct="'+c+'"]').forEach(function(el){el.textContent=pt;
 el.style.color=up?'var(--up)':'var(--dn)';});
-if(c===cur&&location.hash==='#trade'){head();var m=$('tmid');m.style.color=nw>old?'var(--up)':'var(--dn)';}});};
+if(c===cur&&location.hash==='#trade')head();});};
 mws.onclose=function(){setTimeout(liveTick,3000);};}
 
 
@@ -776,7 +793,7 @@ sb.auth.updateUser({password:p}).then(function(r){if(r.error){say(r.error.messag
 
 function refresh(){if(!sb){renderAcct();return;}sb.auth.getUser().then(function(r){ME=(r.data||{}).user||null;AREADY=1;
 if(!ME){PROF=null;renderAcct();var c0=(location.hash||'').slice(1);if(WPAGES.indexOf(c0)>-1)walletPage(c0);return;}
-sb.from('profiles').select('*').eq('id',ME.id).maybeSingle().then(function(p){PROF=p.data||null;renderAcct();
+sb.from('profiles').select('*').eq('id',ME.id).maybeSingle().then(function(p){PROF=p.data||null;renderAcct();if(location.hash==='#trade')tUser();
 var cp2=(location.hash||'').slice(1);if(WPAGES.indexOf(cp2)>-1)walletPage(cp2);});});}
 function renderAcct(){var top=$('acctTop'),mb=document.querySelector('#dr .dh').nextElementSibling;
 if(!ME){top.innerHTML='<div class="card" style="flex-direction:row;align-items:center"><div class="av" '+
@@ -845,7 +862,8 @@ refresh();
 var WPAGES=['wallet','deposit','withdraw','transfer','history','depcoin','addfunds'],NETS=[],WAL={},dAsset='USDT',dNet='TRC20',wAsset='USDT',
 wNet='TRC20',dSrc='self',wTab='spot',AREADY=0;
 var ACN={spot:'Spot wallet',funding:'Funding (P2P) wallet',futures:'Futures wallet'};
-function assets(){var o=[];NETS.forEach(function(n){if(o.indexOf(n.asset)<0)o.push(n.asset);});return o;}
+function assets(){var o=[];NETS.forEach(function(n){if(o.indexOf(n.asset)<0)o.push(n.asset);});
+Object.keys(WAL).forEach(function(k){var w=WAL[k];if(o.indexOf(w.asset)<0&&(+w.balance>0||+w.locked>0))o.push(w.asset);});return o;}
 function nets(a){return NETS.filter(function(n){return n.asset===a;});}
 function netOf(a,n){return NETS.filter(function(x){return x.asset===a&&x.network===n;})[0]||{};}
 function cname(a){var n=nets(a)[0];return n&&n.coin_name?n.coin_name:a;}
@@ -878,7 +896,7 @@ if(wTab==='futures'){$('wList').innerHTML='<div class="li" style="cursor:default
 $('wList').innerHTML=assets().map(function(a){var b=bal(wTab,a),l=lk(wTab,a),v=(b+l)*px(a);
 return '<div class="li" style="cursor:default"><span class="av">'+a[0]+'</span><div style="display:flex;flex-direction:column;'+
 'gap:2px"><span style="font-weight:600">'+a+'</span><span style="font-size:11px;color:var(--mut)">'+esc(cname(a))+
-(l?' · In review: '+fa(l,a):'')+'</span></div><span class="s" style="text-align:right;color:var(--tx);font-weight:600;'+
+(l?' · Locked: '+fa(l,a):'')+'</span></div><span class="s" style="text-align:right;color:var(--tx);font-weight:600;'+
 'font-size:14px">'+fa(b,a)+'<br><span style="font-size:11px;color:var(--mut);font-weight:400">≈ $'+f2(v)+'</span></span></div>';
 }).join('');}
 function chips(id,list,cur,fn){$(id).innerHTML=list.map(function(x){var on=x===cur;return '<button type="button" '+
@@ -1067,6 +1085,60 @@ p_doc_number:f.get('num'),p_full_name:f.get('name'),p_dob:f.get('dob'),p_mobile:
 p_files:paths});}).then(function(r){if(r&&r.error)throw r.error;say('Submitted. Our team will verify it.');
 $('kycForm').reset();refresh();drawKyc();}).catch(function(er){say(errText(er));}).then(function(){b.disabled=false;
 b.textContent='Submit for verification';});};
+/* ---------- Spot trading (order book, user to user) ---------- */
+var OT='limit',OTAB='open',SPOTFEE=0.001,BOOK=null;
+function loadBook(){if(!sb)return;sb.rpc('nx_book',{p_symbol:cur}).then(function(r){if(r.data)drawBook(r.data);
+if(!$('tprice').value&&r.data){var b=r.data,p=b.last!=null?b.last:(side==='buy'?(b.asks[0]||[])[0]:(b.bids[0]||[])[0]);
+if(p==null&&T[cur])p=T[cur].lastPrice;if(p!=null)$('tprice').value=String(+p);calc('p');}});}
+setInterval(function(){if(location.hash==='#trade'&&document.visibilityState==='visible')loadBook();},3000);
+function bookClick(e,sd){var r=e.target.closest('[data-pr]');if(!r)return;setSide(sd);if(OT!=='limit')setOT('limit');
+$('tprice').value=String(+r.dataset.pr);$('tqty').value=String(+r.dataset.am);calc('q');}
+function setOT(t){OT=t;var lim=t==='limit';$('oLim').style.color=lim?'var(--gold)':'var(--mut)';$('oMkt').style.color=lim?'var(--mut)':'var(--gold)';
+$('tpL').style.display=lim?'flex':'none';$('tpM').style.display=lim?'none':'flex';
+$('tqL').textContent='Amount ('+cur+')';$('tqW').style.display=(!lim&&side==='buy')?'none':'flex';
+$('ttW').style.display=(!lim&&side==='sell')?'none':'flex';$('tqty').value='';$('ttot').value='';$('tsl').value=0;calc();}
+function avail(){if(!ME)return null;return side==='buy'?bal('spot','USDT'):bal('spot',cur);}
+function refP(){if(OT==='limit')return +($('tprice').value||0);var b=BOOK||{},x=side==='buy'?(b.asks||[])[0]:(b.bids||[])[0];
+return x?+x[0]:(b.last!=null?+b.last:0);}
+function r8(v){return Math.floor(v*1e8)/1e8;}
+function calc(w){var p=refP(),q=+($('tqty').value||0),t=+($('ttot').value||0);
+if(w==='q'||w==='p'){if(p>0&&q>0)$('ttot').value=String(Math.round(q*p*1e6)/1e6);else if(w==='q')$('ttot').value='';}
+else if(w==='t'){if(p>0&&t>0)$('tqty').value=String(r8(t/p));else $('tqty').value='';}
+var a=avail(),un=side==='buy'?'USDT':cur;$('tav').textContent=a==null?'Log in to trade':fa(a,un)+' '+un;
+$('tmaxL').textContent=side==='buy'?'Max Buy':'Max Sell';
+$('tmax').textContent=a==null?'—':side==='buy'?(p>0?fa(r8(a/p),cur)+' '+cur:'—'):(p>0?f2(a*p)+' USDT':'—');
+q=+($('tqty').value||0);t=+($('ttot').value||0);
+$('tfee').textContent=side==='buy'?(q>0?fa(q*SPOTFEE,cur)+' '+cur:'— '+cur):(t>0?f2(t*SPOTFEE)+' USDT':'— USDT');}
+function slide(){var a=avail();if(a==null){$('tsl').value=0;openAuth('in');return;}var f=+$('tsl').value/100,p=refP();
+if(side==='buy'){var t=Math.floor(a*f*1e6)/1e6;$('ttot').value=t>0?String(t):'';calc('t');}
+else{var q=r8(a*f);$('tqty').value=q>0?String(q):'';calc('q');}}
+function tUser(){if(!ME||!sb){calc();$('tOrders').innerHTML='';return;}loadWal(function(){calc();});loadOrders();}
+function placeOrder(){if(!need())return;var p=+($('tprice').value||0),q=+($('tqty').value||0),t=+($('ttot').value||0),b=$('bGo'),call;
+if(OT==='limit'){if(!(p>0)){say('Enter the price');return;}if(!(q>0)){say('Enter the amount');return;}
+call=sb.rpc('nx_order_place',{p_symbol:cur,p_side:side,p_type:'limit',p_price:p,p_qty:q});}
+else if(side==='buy'){if(!(t>0)){say('Enter the total');return;}call=sb.rpc('nx_order_place',{p_symbol:cur,p_side:'buy',p_type:'market',p_total:t});}
+else{if(!(q>0)){say('Enter the amount');return;}call=sb.rpc('nx_order_place',{p_symbol:cur,p_side:'sell',p_type:'market',p_qty:q});}
+b.disabled=true;call.then(function(r){b.disabled=false;if(r.error){say(errText(r.error));return;}var d=r.data;
+if(+d.filled>0)say((side==='buy'?'Bought ':'Sold ')+fa(d.filled,cur)+' '+cur+(d.status==='open'?' · rest is on the order book':''));
+else say('Order placed on the order book');$('tqty').value='';$('ttot').value='';$('tsl').value=0;tUser();loadBook();});}
+$('toTabs').onclick=function(e){var b=e.target.closest('.tab');if(!b)return;OTAB=b.dataset.o;
+this.querySelectorAll('.tab').forEach(function(x){x.classList.toggle('on',x===b);});loadOrders();};
+function loadOrders(){if(!ME||!sb)return;var q=sb.from('nx_orders').select('*').order('id',{ascending:false}).limit(30);
+q=OTAB==='open'?q.eq('status','open'):q.neq('status','open');q.then(function(r){var l=r.data||[];
+$('tOrders').innerHTML=l.map(function(o){var buy=o.side==='buy',st=o.status,avg=+o.filled>0?+o.filled_quote/+o.filled:0;
+return '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)"><div style="flex:1;'+
+'min-width:0"><div><b style="color:'+(buy?'var(--up)':'var(--dn)')+'">'+(buy?'Buy':'Sell')+'</b> <b>'+esc(o.symbol)+'/USDT</b> '+
+'<span style="color:var(--mut);font-size:11px">'+(o.type==='limit'?'Limit':'Market')+' · '+new Date(o.created_at).toLocaleString()+
+'</span></div><div style="font-size:12px;color:var(--mut2)">'+(o.type==='limit'?'Price '+fp(o.price)+' · ':'')+'Filled '+
+fa(o.filled,o.symbol)+(o.qty!=null&&o.type==='limit'?' / '+fa(o.qty,o.symbol):'')+' '+esc(o.symbol)+(avg?' · avg '+fp(avg):'')+
+'</div></div>'+(st==='open'?'<button class="btn dark" style="height:32px;font-size:12px;padding:0 10px" onclick="cancelOrder('+o.id+
+')">Cancel</button>':'<span style="font-size:12px;color:'+(st==='filled'?'var(--up)':'var(--mut)')+'">'+(st==='filled'?'Filled':
+(+o.filled>0?'Partly filled':'Cancelled'))+'</span>')+'</div>';}).join('')||'<div style="color:var(--mut);padding:14px 0;font-size:13px">'+
+(OTAB==='open'?'No open orders':'No orders yet')+'</div>';});}
+function cancelOrder(id){sb.rpc('nx_order_cancel',{p_id:id}).then(function(r){if(r.error){say(errText(r.error));return;}
+say('Order cancelled');tUser();loadBook();});}
+setInterval(function(){if(location.hash==='#trade'&&ME&&OTAB==='open'&&document.visibilityState==='visible')loadOrders();},20000);
+if(sb)sb.from('nx_spot_settings').select('taker_fee').maybeSingle().then(function(r){if(r.data)SPOTFEE=+r.data.taker_fee;});
 drawHome();show();loadTickers();setInterval(loadTickers,60000);liveTick();
 </script>
 </body>
