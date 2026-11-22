@@ -68,7 +68,7 @@ var MENU=[['Trade',[['Markets','mk','markets'],['Spot trading','tr','trade'],['C
 ['Earn & Tools',[['Copy trading','cp'],['Trading bot','bot'],['API keys','key'],['Refer & Earn','ref','account']]],
 ['Assets',[['Wallet','wl','wallet'],['Deposit','dep','addfunds'],['Withdraw','wd','withdraw'],['Transfer','cv','transfer'],['Transaction history','his','history']]],
 ['Nexora',[['List your token','lst','listing'],['Proof of Reserves','por'],['Fee rates','fee'],
-['Security & 2FA','sec','account'],['Help & support','hlp','tg']]],
+['Security & 2FA','sec','account'],['Help & support','hlp','chat']]],
 ['Community',[['Telegram','tgm','tg'],['X (Twitter)','x','x']]]];
 IC.fut='M3 17l6-6 4 4 8-8M15 7h6v6';IC.key='M15 7a4 4 0 1 1-3.9 5H3v3h3v3h3v-3h2.1A4 4 0 0 1 15 7z';
 IC.his='M12 8v4l3 2M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5';IC.lst='M12 5v14M5 12h14';
@@ -78,7 +78,7 @@ IC.tgm='M21 4L3 11l6 2 2 6 3-4 5 4z';IC.x='M4 4l16 16M20 4L4 20';
 $('dmenu').innerHTML=MENU.map(function(g){return '<div class="dg"><div class="dt">'+g[0]+'</div>'+g[1].map(function(i){
 return '<button class="di" data-g="'+(i[2]||'')+'">'+svg(IC[i[1]],20)+i[0]+'</button>';}).join('')+'</div>';}).join('');
 $('dmenu').onclick=function(e){var b=e.target.closest('.di');if(!b)return;var g=b.dataset.g;menu(0);
-if(g==='tg')window.open('https://t.me/MineXoraOfficial','_blank');else if(g==='x')window.open('https://x.com/MineXoraAsia','_blank');
+if(g==='chat')supOpen();else if(g==='tg')window.open('https://t.me/MineXoraOfficial','_blank');else if(g==='x')window.open('https://x.com/MineXoraAsia','_blank');
 else if(g)go(g);else soon();};
 function menu(o){$('dr').classList.toggle('on',!!o);$('ov').classList.toggle('on',!!o);}
 function show(){var p=(location.hash||'#home').slice(1);if(!$('p-'+p))p='home';
@@ -259,7 +259,8 @@ else{refresh();go('account');}});}else{say('Welcome to Nexora');refresh();go('ac
 document.getElementById('npForm').onsubmit=function(e){e.preventDefault();var p=new FormData(this).get('p');
 sb.auth.updateUser({password:p}).then(function(r){if(r.error){say(r.error.message);return;}say('Password updated');go('account');});};
 
-function refresh(){if(!sb){renderAcct();return;}sb.auth.getUser().then(function(r){ME=(r.data||{}).user||null;AREADY=1;
+function refresh(){if(!sb){renderAcct();return;}sb.auth.getUser().then(function(r){var nu=(r.data||{}).user||null;
+if((nu&&nu.id)!==(ME&&ME.id)){SUPL=0;var sm=$('supMsgs');if(sm)sm.innerHTML='';}ME=nu;AREADY=1;
 if(!ME){PROF=null;renderAcct();var c0=(location.hash||'').slice(1);if(WPAGES.indexOf(c0)>-1)walletPage(c0);return;}
 sb.from('profiles').select('*').eq('id',ME.id).maybeSingle().then(function(p){PROF=p.data||null;renderAcct();if(location.hash==='#trade')tUser();
 var cp2=(location.hash||'').slice(1);if(WPAGES.indexOf(cp2)>-1)walletPage(cp2);});});}
@@ -771,4 +772,34 @@ function adSet(id,st){if(st==='closed'&&!confirm('Close this ad? Unsold USDT goe
 sb.rpc('nx_p2p_ad_update',{p_id:id,p_status:st}).then(function(r){if(r.error){say(errText(r.error));return;}loadWal(adAv);adList();});}
 function adPrice(id){var p=prompt('New price per USDT');if(!p)return;sb.rpc('nx_p2p_ad_update',{p_id:id,p_status:null,p_price:+p})
 .then(function(r){if(r.error){say(errText(r.error));return;}adList();});}
+/* ---------- Live chat support ---------- */
+var SUPT=null,SUPL=0,SUPS='bot',SUPON=0,SUPTM=null;
+function supTok(){try{var t=localStorage.getItem('nx_sup');if(!t){t=(crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'
+.replace(/x/g,function(){return (Math.random()*16|0).toString(16);}));localStorage.setItem('nx_sup',t);}return t;}catch(e){
+if(!SUPT)SUPT='xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g,function(){return (Math.random()*16|0).toString(16);});return SUPT;}}
+function supOpen(){if(!sb){say('Connection problem. Please refresh.');return;}menu(0);SUPON=1;$('supBox').style.display='flex';
+$('supBtn').style.display='none';$('supDot').style.display='none';supChips();supPull();clearInterval(SUPTM);
+SUPTM=setInterval(function(){if(document.visibilityState==='visible')supPull();},4000);setTimeout(function(){$('supIn').focus();},200);}
+function supClose(){SUPON=0;$('supBox').style.display='none';$('supBtn').style.display='flex';clearInterval(SUPTM);
+SUPTM=setInterval(function(){if(SUPS==='agent'&&document.visibilityState==='visible')supPull();},20000);}
+function supChips(){var c=['Deposit','Withdraw','KYC','P2P','2FA','Fees'];
+$('supChips').innerHTML=c.map(function(x){return '<button type="button" class="tf" style="flex-shrink:0;height:32px" onclick="supQ(\''+x+
+'\')">'+x+'</button>';}).join('')+(SUPS==='bot'?'<button type="button" class="tf on" style="flex-shrink:0;height:32px" '+
+'onclick="supAgent()">Talk to an agent</button>':'');}
+function supQ(x){$('supIn').value=x==='Deposit'?'How to deposit':x==='Withdraw'?'How to withdraw':x==='KYC'?'How to do KYC':
+x==='P2P'?'How does P2P work':x==='2FA'?'Google Authenticator 2FA':'What are the fees';supSend();}
+function supPull(){sb.rpc('nx_sup_get',{p_token:supTok(),p_after:SUPL}).then(function(r){if(r.error){return;}var d=r.data;
+var old=SUPS;SUPS=d.status;if(old!==SUPS)supChips();$('supSt').textContent={bot:'Assistant',waiting:'Waiting for an agent…',
+agent:'Agent is online',closed:'Assistant'}[SUPS];var box=$('supMsgs'),n=0;(d.messages||[]).forEach(function(m){n++;SUPL=Math.max(SUPL,m.id);
+var me=m.from==='user',sys=m.from==='system',el=document.createElement('div');el.style.cssText='max-width:85%;border-radius:12px;padding:'+
+(sys?'4px 8px':'9px 11px')+';font-size:'+(sys?'11.5px':'13.5px')+';line-height:1.5;white-space:pre-line;align-self:'+(sys?'center':me?
+'flex-end':'flex-start')+';background:'+(sys?'transparent':me?'#1E2E52':m.from==='agent'?'#2A2410':'var(--card)')+';color:'+(sys?'var(--mut)':
+'var(--tx)')+';text-align:'+(sys?'center':'left');el.innerHTML=(m.from==='agent'?'<b style="color:var(--gold);font-size:11px">Nexora agent</b><br>':
+m.from==='bot'?'<b style="color:var(--mut2);font-size:11px">Assistant</b><br>':'')+esc(m.body);box.appendChild(el);});
+if(n){box.scrollTop=box.scrollHeight;if(!SUPON&&(d.messages||[]).some(function(m){return m.from==='agent';}))$('supDot').style.display='block';}});}
+function supSend(){var t=$('supIn').value.trim();if(!t)return;$('supIn').value='';sb.rpc('nx_sup_send',{p_token:supTok(),p_body:t})
+.then(function(r){if(r.error){say(errText(r.error));return;}supPull();});}
+$('supIn').onkeydown=function(e){if(e.key==='Enter')supSend();};
+function supAgent(){var nm=ME?null:prompt('Your name (optional)');sb.rpc('nx_sup_agent',{p_token:supTok(),p_name:nm||null}).then(function(r){
+if(r.error){say(errText(r.error));return;}supPull();});}
 drawHome();show();loadTickers();setInterval(loadTickers,60000);liveTick();
