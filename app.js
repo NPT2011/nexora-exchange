@@ -676,7 +676,7 @@ b.disabled=true;sb.rpc('nx_p2p_take',{p_ad:PAD.id,p_fiat_amount:f,p_method:mid})
 if(r.error){say(errText(r.error));return;}PO=r.data;go('p2porder');});}
 var STP={pending:'Waiting for payment',paid:'Paid – waiting for release',appeal:'Appeal – support is checking',completed:'Completed',
 cancelled:'Cancelled'};
-function poLoad(){clearInterval(POT);if(!PO){go('p2pmy');return;}poFetch();POT=setInterval(function(){if(location.hash==='#p2porder'&&
+function poLoad(){clearInterval(POT);RELOPEN=0;if(!PO){go('p2pmy');return;}poFetch();POT=setInterval(function(){if(location.hash==='#p2porder'&&
 document.visibilityState==='visible')poFetch();else if(location.hash!=='#p2porder')clearInterval(POT);},4000);}
 var POL=0;
 function poFetch(){sb.rpc('nx_p2p_order',{p_order:PO}).then(function(r){if(r.error){say(errText(r.error));return;}var d=r.data,o=d.order,
@@ -701,16 +701,21 @@ $('poPay').innerHTML=buy?'<div class="ct">Pay the seller here</div><div style="f
 '<div style="font-size:12px;color:var(--dn);padding-top:8px;line-height:1.5">Release only after you see '+nf(o.fiat_amount)+' '+esc(o.fiat)+
 ' in your own account from the buyer\'s name. A screenshot is not proof.</div>';
 var B='';function bt(t,c,f){B+='<button class="btn '+c+'" onclick="'+f+'">'+t+'</button>';}
-if(buy&&st==='pending'){bt('I have paid, notify seller','gold',"poAct('paid')");bt('Cancel order','dark',"poAct('cancel')");}
+if(buy&&st==='pending'){var hasF=d.messages.some(function(x){return x.mine&&x.file;});B+='<div class="wbox" style="font-size:13px;color:'+
+(hasF?'var(--up)':'var(--gold)')+'">'+(hasF?'✓ Payment screenshot uploaded.':'Step 1: pay the seller. Step 2: upload the payment screenshot. '+
+'Step 3: tap "I have paid".')+'</div>';bt('Upload payment screenshot','dark',"$('poFile').click()");
+bt('I have paid, notify seller','gold',"poAct('paid')");bt('Cancel order','dark',"poAct('cancel')");}
 if(buy&&st==='paid'){bt('Open appeal','dark',"poAct('appeal')");bt('Cancel order','dark',"poAct('cancel')");}
-if(!buy&&(st==='paid'||st==='appeal')){bt('Payment received – Release USDT','gold',"poAct('release')");}
+if(!buy&&(st==='paid'||st==='appeal')){B+='<div class="wbox" style="font-size:13.5px;color:var(--gold);line-height:1.6">The buyer says '+
+'the payment of <b>'+nf(o.fiat_amount)+' '+esc(o.fiat)+'</b> is done. Open your bank / UPI app and check that the money has really '+
+'arrived from <b>'+esc(other)+'</b>.</div>';bt('Payment received – Release USDT','gold',"relOpen()");}
 if(!buy&&st==='paid')bt('Open appeal','dark',"poAct('appeal')");
 if(!buy&&st==='pending')B+='<div class="wbox" style="font-size:13px;color:var(--mut2)">Waiting for the buyer to pay.</div>';
 if(st==='appeal')B+='<div class="wbox" style="font-size:13px;color:var(--gold)">Appeal: '+esc(o.appeal_reason||'')+
 '<br><span style="color:var(--mut2)">Nexora support will decide. Send payment screenshots in the chat.</span></div>';
 if(st==='completed'||st==='cancelled')B+='<div class="wbox" style="font-size:13px">'+(st==='completed'?(buy?nf(o.qty,6)+
 ' USDT was added to your Funding wallet.':'Order completed.'):'Order cancelled'+(o.cancel_reason?': '+esc(o.cancel_reason):''))+'</div>';
-$('poBtns').innerHTML=B;
+if(!RELOPEN)$('poBtns').innerHTML=B;PODATA=d;
 var ch=$('poChat'),atB=ch.scrollTop+ch.clientHeight>=ch.scrollHeight-20,n=d.messages.length;
 ch.innerHTML=d.messages.map(function(m){var al=m.sys||m.admin?'center':m.mine?'flex-end':'flex-start',bg=m.sys?'transparent':m.admin?
 '#2A2410':m.mine?'#1E2E52':'var(--card2)';return '<div style="align-self:'+al+';max-width:85%;background:'+bg+';border-radius:10px;'+
@@ -719,7 +724,39 @@ ch.innerHTML=d.messages.map(function(m){var al=m.sys||m.admin?'center':m.mine?'f
 'font-size:12px;padding:0 10px;margin-top:4px" onclick="poImg(\''+esc(m.file)+'\')">Open photo</button>':'')+'<div style="font-size:10px;'+
 'color:var(--mut);padding-top:2px">'+new Date(m.at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+'</div></div>';}).join('');
 if(atB||n!==POL)ch.scrollTop=ch.scrollHeight;POL=n;});}
-function poAct(a){var why=null;if(a==='release'&&!confirm('Have you checked your own account and received the full money? This cannot be undone.'))return;
+var RELOPEN=0,PODATA=null;
+function relOpen(){var o=PODATA.order,other=PODATA.buyer_name;RELOPEN=1;$('poBtns').innerHTML='<div class="wbox" style="display:flex;'+
+'flex-direction:column;gap:10px"><div class="ct">Confirm payment received</div><label style="display:flex;gap:8px;align-items:flex-start;'+
+'font-size:13px;line-height:1.5"><input type="checkbox" id="relChk" style="margin-top:3px;flex-shrink:0"><span>I confirm that I have received <b>'+
+nf(o.fiat_amount)+' '+esc(o.fiat)+'</b> in my own account from <b>'+esc(other)+'</b>. I understand that released USDT cannot be returned.</span></label>'+
+'<label class="fl">Your Nexora password<input class="in" id="relP" type="password" autocomplete="current-password"></label>'+
+'<label class="fl">Google Authenticator code<input class="in" id="relT" inputmode="numeric" maxlength="6" autocomplete="one-time-code"></label>'+
+'<div id="relMsg" style="display:none;font-size:13.5px;font-weight:600;padding:10px 12px;border-radius:10px"></div>'+
+'<div id="relMsg" style="display:none;font-size:13.5px;font-weight:600;padding:10px 12px;border-radius:10px"></div>'+
+'<button class="btn gold" id="relGo" onclick="relGo()">Confirm and release '+nf(o.qty,6)+' USDT</button>'+'<button class="btn dark" onclick="RELOPEN=0;poFetch()">Back</button></div>';}
+function relMsg(t,ok){var m=$('relMsg');m.style.display='block';m.textContent=t;m.style.background=ok?'rgba(14,138,95,.18)':'rgba(200,48,63,.18)';
+m.style.color=ok?'#3FD39A':'#FF6B7A';}
+function relMsg(t,ok){var m=$('relMsg');m.style.display='block';m.textContent=t;m.style.background=ok?'rgba(14,138,95,.2)':'rgba(200,48,63,.2)';
+m.style.color=ok?'#3FD39A':'#FF6B7A';}
+function relGo(){var p=$('relP').value,t=$('relT').value.trim(),b=$('relGo');
+if(!$('relChk').checked){relMsg('Please tick the box to confirm you received the money.');return;}
+if(!p){relMsg('Please enter your password.');$('relP').focus();return;}
+if(!/^\d{6}$/.test(t)){relMsg('Please enter the 6-digit Google Authenticator code.');$('relT').focus();return;}
+b.disabled=true;$('relMsg').style.display='none';
+sb.auth.signInWithPassword({email:ME.email,password:p}).then(function(r){if(r.error)throw {k:'pw'};
+return sb.auth.mfa.listFactors();}).then(function(l){var f=((l.data||{}).totp||[]).filter(function(x){return x.status==='verified';})[0];
+if(!f)throw {m:'Google Authenticator is not turned on. Turn it on in Account > 2FA first.'};
+return sb.auth.mfa.challengeAndVerify({factorId:f.id,code:t});})
+.then(function(r){if(r&&r.error)throw {k:'otp'};return sb.rpc('nx_p2p_action',{p_order:PO,p_action:'release'});})
+.then(function(r){if(r.error)throw {m:errText(r.error)};var o=PODATA.order;
+$('poBtns').innerHTML='<div class="wbox" style="text-align:center;padding:22px 14px;border:1px solid #0E8A5F;background:rgba(14,138,95,.15)">'+
+'<div style="font-size:40px;line-height:1;color:#3FD39A">✓</div><div style="font-size:22px;font-weight:700;color:#3FD39A;padding-top:8px">'+
+'Successful</div><div style="font-size:13px;color:var(--soft);padding-top:6px">'+nf(o.qty,6)+' USDT has been sent to the buyer\'s wallet.</div></div>';
+setTimeout(function(){RELOPEN=0;poFetch();},4000);}).catch(function(er){b.disabled=false;
+if(er&&er.k==='pw'){relMsg('Incorrect password. Please enter it again.');$('relP').value='';$('relP').focus();}
+else if(er&&er.k==='otp'){relMsg('Incorrect or invalid OTP. Please enter the new code from Google Authenticator.');$('relT').value='';$('relT').focus();}
+else relMsg((er&&(er.m||er.message))||'Something went wrong. Please try again.');});}
+function poAct(a){var why=null;
 if(a==='paid'&&!confirm('Have you really sent the money? Marking as paid without paying can block your account.'))return;
 if(a==='cancel'&&!confirm('Cancel this order? Do not cancel if you have already paid.'))return;
 if(a==='appeal'){why=prompt('What is the problem?');if(!why)return;}
@@ -851,4 +888,11 @@ inf.style.display='block';if(a==='fee')inf.innerHTML='<b style="color:var(--tx)"
 (SPOTFEE*100).toFixed(2)+'%<br>Taker (your order fills at once): '+(SPOTFEE*100).toFixed(2)+'%<br>The fee is taken from what you receive.';
 else inf.innerHTML='<b style="color:var(--tx)">'+cur+'/USDT trading parameters</b><br>Minimum order: 5 USDT<br>Amount precision: 8 decimals<br>'+
 'Order types: Limit, Market<br>Up to 100 open orders per account<br>Fee: '+(SPOTFEE*100).toFixed(2)+'%';};
+/* P2P: tell the seller when a buyer has paid */
+function p2pNotice(){if(!ME||!sb)return;sb.from('nx_p2p_orders').select('id,fiat_amount,fiat,qty').eq('seller',ME.id).eq('status','paid')
+.order('id').then(function(r){var l=r.data||[],b=$('p2pBan'),o=l.filter(function(x){return !(location.hash==='#p2porder'&&PO===x.id);})[0];
+if(!o){b.style.display='none';return;}b.style.display='flex';b.innerHTML='<span style="flex:1">Buyer paid <b>'+nf(o.fiat_amount)+' '+esc(o.fiat)+
+'</b> for P2P order #'+o.id+'. Check your account and release.</span><button class="btn gold" style="height:34px;padding:0 12px;font-size:12.5px" '+
+'onclick="PO='+o.id+';go(\'p2porder\')">Open</button>';});}
+setInterval(function(){if(document.visibilityState==='visible')p2pNotice();},20000);setTimeout(p2pNotice,3000);
 drawHome();show();loadTickers();setInterval(loadTickers,60000);liveTick();
