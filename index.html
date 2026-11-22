@@ -283,19 +283,17 @@ website, and may ask for more documents. Listing is only after approval.</label>
 <!-- TRADE -->
 <section class="pg" id="p-trade">
 <div class="tabs"><button class="tab on">Spot</button><button class="tab" onclick="soon()">Convert</button>
-<button class="tab" onclick="soon()">P2P</button><button class="tab" onclick="soon()">Bot</button>
+<button class="tab" onclick="go('p2p')">P2P</button><button class="tab" onclick="soon()">Bot</button>
 <button class="tab" onclick="soon()">Copy</button></div>
 <div class="hd">
-<div><div style="font-family:'Space Grotesk';font-size:20px;font-weight:700" id="tpair">BTC/USDT</div>
+<div><button type="button" onclick="go('markets')" style="background:none;border:0;padding:0;color:var(--tx);display:flex;align-items:center;gap:6px;
+font-family:'Space Grotesk';font-size:20px;font-weight:700"><span id="tpair">BTC/USDT</span><svg width="12" height="12" viewBox="0 0 24 24"
+fill="currentColor"><path d="M4 8h16l-8 9z"/></svg></button>
 <div style="font-size:13px;font-weight:600" id="tpx">—</div></div>
 <div style="display:grid;grid-template-columns:auto auto;gap:2px 14px;font-size:11px;color:var(--mut);
 text-align:right"><span>24h High</span><span style="color:var(--soft)" id="thi">—</span>
 <span>24h Low</span><span style="color:var(--soft)" id="tlo">—</span></div>
 </div>
-<div class="tfs" id="tfs"><button class="tf" data-i="1m">1m</button><button class="tf on" data-i="15m">15m</button>
-<button class="tf" data-i="1h">1h</button><button class="tf" data-i="4h">4h</button>
-<button class="tf" data-i="1d">1D</button></div>
-<div class="chart" id="chart"></div>
 <div style="display:flex;gap:12px">
 <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:9px">
 <div class="seg"><button id="bBuy">Buy</button><button id="bSell">Sell</button></div>
@@ -325,9 +323,18 @@ id="tmid">—</div>
 <div id="bids" onclick="bookClick(event,'sell')"></div>
 </div>
 </div>
-<div class="tabs" id="toTabs" style="margin-top:4px"><button class="tab on" data-o="open">Open orders</button>
-<button class="tab" data-o="hist">Order history</button></div>
-<div id="tOrders" style="font-size:13px"></div>
+<div class="tabs" id="toTabs" style="margin-top:4px"><button class="tab on" data-o="open">Open Orders (<span id="toN">0</span>)</button>
+<button class="tab" data-o="hist">Order History</button></div>
+<div id="tOrders" style="font-size:13px;min-height:120px"></div>
+<button type="button" id="chBar" onclick="chToggle()" style="display:flex;justify-content:space-between;align-items:center;width:100%;
+background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--tx);font-size:14px;font-weight:600">
+<span><span id="chName">BTC/USDT</span> Chart</span><svg id="chArr" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"
+style="transform:rotate(180deg)"><path d="M4 8h16l-8 9z"/></svg></button>
+<div id="chBox" style="display:none;flex-direction:column;gap:10px">
+<div class="tfs" id="tfs"><button class="tf" data-i="1m">1m</button><button class="tf on" data-i="15m">15m</button>
+<button class="tf" data-i="1h">1h</button><button class="tf" data-i="4h">4h</button>
+<button class="tf" data-i="1d">1D</button></div>
+<div class="chart" id="chart"></div></div>
 </section>
 
 <!-- WALLET -->
@@ -354,10 +361,9 @@ fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stro
 </svg></span><div style="display:flex;flex-direction:column;gap:4px"><b>Deposit crypto</b><span>Send crypto from another
 exchange or wallet (Binance, Trust Wallet, MetaMask…) to Nexora</span></div></button>
 <div class="lab">Buy crypto</div>
-<button class="mrow" onclick="soon()"><span class="qi" style="flex-shrink:0"><svg width="24" height="24" viewBox="0 0 24 24"
+<button class="mrow" onclick="go('p2p')"><span class="qi" style="flex-shrink:0"><svg width="24" height="24" viewBox="0 0 24 24"
 fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7a3 3 0 1 0 0-.1M16 17a3 3 0 1 0
-0-.1M4 21a4 4 0 0 1 8 0M12 11a4 4 0 0 1 8 0"/></svg></span><div style="display:flex;flex-direction:column;gap:4px"><b>P2P trading
-<span class="soon">Soon</span></b><span>Buy crypto with bank transfer, UPI and more from other users</span></div></button>
+0-.1M4 21a4 4 0 0 1 8 0M12 11a4 4 0 0 1 8 0"/></svg></span><div style="display:flex;flex-direction:column;gap:4px"><b>P2P trading</b><span>Buy crypto with bank transfer, UPI and more from other users</span></div></button>
 </section>
 
 <!-- DEPOSIT: select coin -->
@@ -445,6 +451,85 @@ Binance…), use <a href="#withdraw">Withdraw</a>.</div>
 <section class="pg" id="p-history">
 <h1 class="h1">Transaction history</h1>
 <div id="hAll"></div>
+</section>
+
+<!-- P2P -->
+<section class="pg" id="p-p2p">
+<div style="display:flex;justify-content:space-between;align-items:center"><h1 class="h1" style="margin:0">P2P</h1>
+<div style="display:flex;gap:6px"><button class="btn dark" style="height:34px;font-size:12.5px;padding:0 10px" onclick="need()&&go('p2pmy')">Orders</button>
+<button class="btn dark" style="height:34px;font-size:12.5px;padding:0 10px" onclick="need()&&go('p2pads')">My ads</button></div></div>
+<div class="seg" id="pSeg"><button data-s="buy">Buy USDT</button><button data-s="sell">Sell USDT</button></div>
+<div style="display:flex;gap:8px"><select class="in" id="pFiat" style="flex:1"></select><select class="in" id="pPay" style="flex:1.4"></select></div>
+<div id="pList"></div>
+<div style="font-size:11.5px;color:var(--mut);line-height:1.5">USDT is held in escrow by Nexora during every order. Never release USDT before
+the money is really in your own account. Never pay outside the payment details shown in the order.</div>
+</section>
+
+<section class="pg" id="p-p2ptake">
+<h1 class="h1" id="ptT">Buy USDT</h1>
+<div class="wbox" id="ptAd"></div>
+<div class="wbox" style="display:flex;flex-direction:column;gap:10px">
+<label class="fl">I want to pay (<span id="ptF1"></span>)<input class="in" id="ptFiat" inputmode="decimal" oninput="ptCalc('f')"></label>
+<label class="fl">I will receive (USDT)<input class="in" id="ptQty" inputmode="decimal" oninput="ptCalc('q')"></label>
+<label class="fl" id="ptMW">Receive the money in<select class="in" id="ptM"></select></label>
+<div style="font-size:12px;color:var(--mut2)" id="ptInfo"></div>
+<button class="btn gold" id="ptBtn" onclick="ptGo()">Buy USDT</button>
+</div>
+</section>
+
+<section class="pg" id="p-p2porder">
+<div class="wbox" id="poHead"></div>
+<div class="wbox" id="poPay"></div>
+<div id="poBtns" style="display:flex;flex-direction:column;gap:8px"></div>
+<div class="wbox" style="display:flex;flex-direction:column;gap:8px"><div class="ct">Chat</div>
+<div id="poChat" style="display:flex;flex-direction:column;gap:6px;max-height:360px;overflow-y:auto"></div>
+<div style="display:flex;gap:6px"><input class="in" id="poMsg" placeholder="Write a message" style="flex:1">
+<label class="btn dark" style="height:42px;display:flex;align-items:center;padding:0 10px;cursor:pointer" aria-label="Send photo">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/>
+<circle cx="12" cy="12" r="3"/></svg><input type="file" accept="image/*" id="poFile" style="display:none"></label>
+<button class="btn gold" style="height:42px;padding:0 14px" onclick="poSend()">Send</button></div></div>
+</section>
+
+<section class="pg" id="p-p2pmy">
+<h1 class="h1">P2P orders</h1>
+<div class="tabs" id="pmTabs"><button class="tab on" data-t="open">Processing</button><button class="tab" data-t="done">All orders</button></div>
+<div id="pmList"></div>
+</section>
+
+<section class="pg" id="p-p2pads">
+<div style="display:flex;justify-content:space-between;align-items:center"><h1 class="h1" style="margin:0">My ads</h1>
+<button class="btn dark" style="height:34px;font-size:12.5px;padding:0 10px" onclick="go('p2ppay')">Payment methods</button></div>
+<form id="adForm" class="wbox" style="display:flex;flex-direction:column;gap:10px">
+<div class="ct">Post a new ad</div>
+<div class="seg" id="adSeg"><button type="button" data-s="sell">I want to sell USDT</button><button type="button" data-s="buy">I want to buy USDT</button></div>
+<div style="display:flex;gap:8px"><label class="fl" style="flex:1">Currency<select class="in" name="fiat" id="adFiat"></select></label>
+<label class="fl" style="flex:1">My price per USDT<input class="in" name="price" inputmode="decimal" required></label></div>
+<label class="fl">Total USDT<input class="in" name="qty" inputmode="decimal" required></label>
+<div style="font-size:12px;color:var(--mut2)" id="adAv"></div>
+<div style="display:flex;gap:8px"><label class="fl" style="flex:1">Min per order<input class="in" name="min" inputmode="decimal" required></label>
+<label class="fl" style="flex:1">Max per order<input class="in" name="max" inputmode="decimal" required></label></div>
+<div class="fl">Payment methods<div id="adPays" style="display:flex;flex-wrap:wrap;gap:6px;padding-top:4px"></div></div>
+<label class="fl">Payment time limit<select class="in" name="time"><option value="15">15 minutes</option><option value="30">30 minutes</option>
+<option value="45">45 minutes</option><option value="60">60 minutes</option></select></label>
+<label class="fl">Terms (shown to the other side)<textarea class="in" name="terms" rows="2" style="height:auto;padding:10px"></textarea></label>
+<button class="btn gold" type="submit">Post ad</button>
+<div style="font-size:12px;color:var(--mut2);line-height:1.5">Sell ads: the USDT is locked from your Funding wallet until it is sold or you
+close the ad.</div>
+</form>
+<div id="adList"></div>
+</section>
+
+<section class="pg" id="p-p2ppay">
+<h1 class="h1">P2P payment methods</h1>
+<div id="pmMeth"></div>
+<form id="pmForm" class="wbox" style="display:flex;flex-direction:column;gap:10px">
+<div class="ct">Add a payment method</div>
+<label class="fl">Type<select class="in" name="type" id="pmType"></select></label>
+<label class="fl">Account holder name (same as your KYC name)<input class="in" name="name" required></label>
+<label class="fl">Details (UPI ID / account number + IFSC / IBAN / phone)<textarea class="in" name="det" rows="3" required
+style="height:auto;padding:10px"></textarea></label>
+<button class="btn gold" type="submit">Save</button>
+</form>
 </section>
 
 <!-- KYC -->
@@ -582,7 +667,7 @@ if(v>=1)return v.toFixed(3);if(v>=0.01)return v.toFixed(4);return v.toPrecision(
 function fv(v){v=+v;if(v>=1e9)return (v/1e9).toFixed(2)+'B';if(v>=1e6)return (v/1e6).toFixed(1)+'M';
 if(v>=1e3)return (v/1e3).toFixed(1)+'K';return v.toFixed(0);}
 
-var QA=[['Deposit','dep','addfunds'],['Withdraw','wd','withdraw'],['P2P','p2p'],['Convert','cv'],
+var QA=[['Deposit','dep','addfunds'],['Withdraw','wd','withdraw'],['P2P','p2p','p2p'],['Convert','cv'],
 ['Copy Trade','cp'],['Trading Bot','bot'],['Refer & Earn','ref','account'],['Proof of Reserves','por']];
 $('qa').innerHTML=QA.map(function(q){return '<button class="q" data-g="'+(q[2]||'')+'"><span class="qi">'+
 svg(IC[q[1]])+'</span>'+q[0]+'</button>';}).join('');
@@ -595,7 +680,7 @@ $('nav').innerHTML=NAV.map(function(n){return '<button class="nb" data-p="'+n[0]
 $('nav').onclick=function(e){var b=e.target.closest('.nb');if(b)go(b.dataset.p);};
 
 function go(p){location.hash=p;}
-var MENU=[['Trade',[['Markets','mk','markets'],['Spot trading','tr','trade'],['Convert','cv'],['P2P trading','p2p'],
+var MENU=[['Trade',[['Markets','mk','markets'],['Spot trading','tr','trade'],['Convert','cv'],['P2P trading','p2p','p2p'],
 ['Futures (soon)','fut']]],
 ['Earn & Tools',[['Copy trading','cp'],['Trading bot','bot'],['API keys','key'],['Refer & Earn','ref','account']]],
 ['Assets',[['Wallet','wl','wallet'],['Deposit','dep','addfunds'],['Withdraw','wd','withdraw'],['Transfer','cv','transfer'],['Transaction history','his','history']]],
@@ -616,7 +701,7 @@ function menu(o){$('dr').classList.toggle('on',!!o);$('ov').classList.toggle('on
 function show(){var p=(location.hash||'#home').slice(1);if(!$('p-'+p))p='home';
 document.querySelectorAll('.pg').forEach(function(s){s.classList.toggle('on',s.id==='p-'+p);});
 document.querySelectorAll('.nb').forEach(function(b){b.classList.toggle('on',b.dataset.p===p);});
-window.scrollTo(0,0);if(p==='docs')drawDocs();if(p==='kyc')drawKyc();if(p==='trade')loadTrade();if(p==='2fa')load2fa();if(WPAGES.indexOf(p)>-1)walletPage(p);
+window.scrollTo(0,0);if(p==='docs')drawDocs();if(p.indexOf('p2p')===0)p2pPage(p);if(p==='kyc')drawKyc();if(p==='trade')loadTrade();if(p==='2fa')load2fa();if(WPAGES.indexOf(p)>-1)walletPage(p);
 if(p==='auth'&&!document.getElementById('aTitle').dataset.i){document.getElementById('aTitle').dataset.i=1;setMode(aMode);}}
 window.onhashchange=show;
 
@@ -701,7 +786,7 @@ $('bSell').style.color=b?'var(--mut)':'#fff';$('bGo').style.background=b?'var(--
 $('bGo').textContent=(b?'Buy ':'Sell ')+cur;setOT(OT);}
 
 $('bBuy').onclick=function(){setSide('buy');};$('bSell').onclick=function(){setSide('sell');};
-function head(){var t=T[cur];$('tpair').textContent=cur+'/USDT';if(!t)return;var ch=+t.pct;
+function head(){var t=T[cur];$('tpair').textContent=cur+'/USDT';$('chName').textContent=cur+'/USDT';if(!t)return;var ch=+t.pct;
 $('tpx').textContent=fp(t.lastPrice)+' · '+(ch>=0?'+':'')+ch.toFixed(2)+'%';
 $('tpx').style.color=ch>=0?'var(--up)':'var(--dn)';$('thi').textContent=fp(t.highPrice);
 $('tlo').textContent=fp(t.lowPrice);}
@@ -1112,7 +1197,8 @@ $('tfee').textContent=side==='buy'?(q>0?fa(q*SPOTFEE,cur)+' '+cur:'— '+cur):(t
 function slide(){var a=avail();if(a==null){$('tsl').value=0;openAuth('in');return;}var f=+$('tsl').value/100,p=refP();
 if(side==='buy'){var t=Math.floor(a*f*1e6)/1e6;$('ttot').value=t>0?String(t):'';calc('t');}
 else{var q=r8(a*f);$('tqty').value=q>0?String(q):'';calc('q');}}
-function tUser(){if(!ME||!sb){calc();$('tOrders').innerHTML='';return;}loadWal(function(){calc();});loadOrders();}
+function tUser(){if(!ME||!sb){calc();$('tOrders').innerHTML='<div style="text-align:center;padding:22px 0"><button class="btn gold" '+
+'style="height:40px;padding:0 22px" onclick="openAuth(\'in\')">Log in to trade</button></div>';return;}loadWal(function(){calc();});loadOrders();}
 function placeOrder(){if(!need())return;var p=+($('tprice').value||0),q=+($('tqty').value||0),t=+($('ttot').value||0),b=$('bGo'),call;
 if(OT==='limit'){if(!(p>0)){say('Enter the price');return;}if(!(q>0)){say('Enter the amount');return;}
 call=sb.rpc('nx_order_place',{p_symbol:cur,p_side:side,p_type:'limit',p_price:p,p_qty:q});}
@@ -1124,22 +1210,11 @@ else say('Order placed on the order book');$('tqty').value='';$('ttot').value=''
 $('toTabs').onclick=function(e){var b=e.target.closest('.tab');if(!b)return;OTAB=b.dataset.o;
 this.querySelectorAll('.tab').forEach(function(x){x.classList.toggle('on',x===b);});loadOrders();};
 function loadOrders(){if(!ME||!sb)return;var q=sb.from('nx_orders').select('*').order('id',{ascending:false}).limit(30);
-q=OTAB==='open'?q.eq('status','open'):q.neq('status','open');q.then(function(r){var l=r.data||[];
+q=OTAB==='open'?q.eq('status','open'):q.neq('status','open');q.then(function(r){var l=r.data||[];if(OTAB==='open')$('toN').textContent=l.length;
 $('tOrders').innerHTML=l.map(function(o){var buy=o.side==='buy',st=o.status,avg=+o.filled>0?+o.filled_quote/+o.filled:0;
 return '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)"><div style="flex:1;'+
 'min-width:0"><div><b style="color:'+(buy?'var(--up)':'var(--dn)')+'">'+(buy?'Buy':'Sell')+'</b> <b>'+esc(o.symbol)+'/USDT</b> '+
 '<span style="color:var(--mut);font-size:11px">'+(o.type==='limit'?'Limit':'Market')+' · '+new Date(o.created_at).toLocaleString()+
 '</span></div><div style="font-size:12px;color:var(--mut2)">'+(o.type==='limit'?'Price '+fp(o.price)+' · ':'')+'Filled '+
 fa(o.filled,o.symbol)+(o.qty!=null&&o.type==='limit'?' / '+fa(o.qty,o.symbol):'')+' '+esc(o.symbol)+(avg?' · avg '+fp(avg):'')+
-'</div></div>'+(st==='open'?'<button class="btn dark" style="height:32px;font-size:12px;padding:0 10px" onclick="cancelOrder('+o.id+
-')">Cancel</button>':'<span style="font-size:12px;color:'+(st==='filled'?'var(--up)':'var(--mut)')+'">'+(st==='filled'?'Filled':
-(+o.filled>0?'Partly filled':'Cancelled'))+'</span>')+'</div>';}).join('')||'<div style="color:var(--mut);padding:14px 0;font-size:13px">'+
-(OTAB==='open'?'No open orders':'No orders yet')+'</div>';});}
-function cancelOrder(id){sb.rpc('nx_order_cancel',{p_id:id}).then(function(r){if(r.error){say(errText(r.error));return;}
-say('Order cancelled');tUser();loadBook();});}
-setInterval(function(){if(location.hash==='#trade'&&ME&&OTAB==='open'&&document.visibilityState==='visible')loadOrders();},20000);
-if(sb)sb.from('nx_spot_settings').select('taker_fee').maybeSingle().then(function(r){if(r.data)SPOTFEE=+r.data.taker_fee;});
-drawHome();show();loadTickers();setInterval(loadTickers,60000);liveTick();
-</script>
-</body>
-</html>
+'</div></div>'+(st==='open'?'<button class="
