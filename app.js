@@ -267,8 +267,13 @@ function afterLogin(){sb.auth.mfa.getAuthenticatorAssuranceLevel().then(function
 if(d.nextLevel==='aal2'&&d.currentLevel!=='aal2'){sb.auth.mfa.listFactors().then(function(l){
 var t=((l.data||{}).totp||[]).filter(function(x){return x.status==='verified';})[0];if(t){mfaFactor=t.id;setMode('code');}
 else{refresh();go('account');}});}else{say('Welcome to Nexora');refresh();go('account');}});}
-document.getElementById('npForm').onsubmit=function(e){e.preventDefault();var p=new FormData(this).get('p');
-sb.auth.updateUser({password:p}).then(function(r){if(r.error){say(r.error.message);return;}say('Password updated');go('account');});};
+document.getElementById('npForm').onsubmit=function(e){e.preventDefault();var f=this,p=new FormData(f).get('p'),b=f.querySelector('button'),
+m=document.getElementById('npMsg');if(!m){m=document.createElement('div');m.id='npMsg';m.style.cssText='font-size:14px;padding:4px 2px';f.appendChild(m);}
+function done(t,ok){b.disabled=false;b.textContent='Save password';m.style.color=ok?'var(--up)':'var(--dn)';m.textContent=t;}
+b.disabled=true;b.textContent='Saving...';m.textContent='';
+sb.auth.updateUser({password:p}).then(function(r){if(r.error){done(/different/i.test(r.error.message)?'New password must be different from the old password.':
+/session/i.test(r.error.message)?'This reset link has expired. Please request a new one.':r.error.message,0);return;}
+done('Password changed successfully \u2713',1);f.reset();setTimeout(function(){go('account');},1800);},function(){done('Something went wrong. Please try again.',0);});};
 
 function refresh(){if(!sb){renderAcct();return;}sb.auth.getUser().then(function(r){var nu=(r.data||{}).user||null;
 if((nu&&nu.id)!==(ME&&ME.id)){SUPL=0;SUPSEEN={};var sm=$('supMsgs');if(sm)sm.innerHTML='';}ME=nu;AREADY=1;
@@ -335,7 +340,7 @@ function confirmCode(fid,ok){var box=$('tfaBox');box.innerHTML='<label class="fl
 .then(function(x){if(x.error){say('Wrong code');return;}ok();});};return false;}
 
 if(sb)sb.auth.onAuthStateChange(function(ev){if(ev==='PASSWORD_RECOVERY'){location.hash='newpass';}
-if(ev==='SIGNED_IN'||ev==='SIGNED_OUT'||ev==='USER_UPDATED')refresh();});
+if(ev==='SIGNED_IN'||ev==='SIGNED_OUT'||ev==='USER_UPDATED')setTimeout(refresh,0);});
 refresh();
 
 /* ---------- Wallet: balances, deposit, withdraw, transfer, history (multi-coin) ---------- */
