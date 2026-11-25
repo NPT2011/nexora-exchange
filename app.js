@@ -268,12 +268,20 @@ if(d.nextLevel==='aal2'&&d.currentLevel!=='aal2'){sb.auth.mfa.listFactors().then
 var t=((l.data||{}).totp||[]).filter(function(x){return x.status==='verified';})[0];if(t){mfaFactor=t.id;setMode('code');}
 else{refresh();go('account');}});}else{say('Welcome to Nexora');refresh();go('account');}});}
 document.getElementById('npForm').onsubmit=function(e){e.preventDefault();var f=this,p=new FormData(f).get('p'),b=f.querySelector('button'),
-m=document.getElementById('npMsg');if(!m){m=document.createElement('div');m.id='npMsg';m.style.cssText='font-size:14px;padding:4px 2px';f.appendChild(m);}
+m=document.getElementById('npMsg'),ci=document.getElementById('npCode');if(!m){m=document.createElement('div');m.id='npMsg';m.style.cssText='font-size:14px;padding:4px 2px';f.appendChild(m);}
 function done(t,ok){b.disabled=false;b.textContent='Save password';m.style.color=ok?'var(--up)':'var(--dn)';m.textContent=t;}
+function fail(){done('Something went wrong. Please try again.',0);}
+function needCode(){if(!ci){var l=document.createElement('label');l.className='fl';l.textContent='Google Authenticator code';ci=document.createElement('input');ci.id='npCode';ci.className='in';
+ci.inputMode='numeric';ci.maxLength=6;ci.autocomplete='one-time-code';ci.placeholder='6-digit code';l.appendChild(ci);f.insertBefore(l,b);}
+done('Enter the 6-digit code from Google Authenticator, then tap Save password.',0);ci.focus();}
+function save(){sb.auth.updateUser({password:p}).then(function(r){if(r.error){var em=r.error.message||'';
+if(r.error.code==='insufficient_aal'||/aal2/i.test(em)){needCode();return;}
+done(/different/i.test(em)?'New password must be different from the old password.':/session missing|expired|not found/i.test(em)?'This reset link has expired. Please request a new one.':em,0);return;}
+done('Password changed successfully ✓',1);f.reset();setTimeout(function(){go('account');},1800);},fail);}
 b.disabled=true;b.textContent='Saving...';m.textContent='';
-sb.auth.updateUser({password:p}).then(function(r){if(r.error){done(/different/i.test(r.error.message)?'New password must be different from the old password.':
-/session/i.test(r.error.message)?'This reset link has expired. Please request a new one.':r.error.message,0);return;}
-done('Password changed successfully \u2713',1);f.reset();setTimeout(function(){go('account');},1800);},function(){done('Something went wrong. Please try again.',0);});};
+var cv=ci?ci.value.trim():'';if(!cv){save();return;}
+sb.auth.mfa.listFactors().then(function(l){var t=((l.data||{}).totp||[]).filter(function(x){return x.status==='verified';})[0];if(!t){save();return;}
+sb.auth.mfa.challengeAndVerify({factorId:t.id,code:cv}).then(function(v){if(v.error){done('Wrong code. Please try again.',0);return;}save();},fail);},fail);};
 
 function refresh(){if(!sb){renderAcct();return;}sb.auth.getUser().then(function(r){var nu=(r.data||{}).user||null;
 if((nu&&nu.id)!==(ME&&ME.id)){SUPL=0;SUPSEEN={};var sm=$('supMsgs');if(sm)sm.innerHTML='';}ME=nu;AREADY=1;
