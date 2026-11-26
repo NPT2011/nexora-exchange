@@ -29,21 +29,21 @@ sec3('api','<h1 class="h1">API keys</h1><div class="card" style="gap:6px"><div s
 /* ---------- GRID BOT ---------- */
 function botForm(){var f=q3('bForm'),cs=COINS.filter(function(c){return T[c];});if(!cs.length)cs=HOT;
 f.innerHTML='<label class="fl">Coin<select class="in" id="bCoin">'+cs.map(function(c){return '<option value="'+c+'">'+c+'/USDT</option>';}).join('')+
-'</select></label><div class="irow"><span style="color:var(--mut2)">Price now</span><b id="bPx">—</b></div>'+
+'</select></label><div class="irow"><span style="color:var(--mut2)">Price now</span><b id="bPx">\u2014</b></div>'+
 '<div class="g2"><label class="fl">Lower price<input class="in" id="bLo" inputmode="decimal"></label>'+
 '<label class="fl">Upper price<input class="in" id="bUp" inputmode="decimal"></label></div>'+
-'<button class="btn dark" id="bAuto" style="height:36px;font-size:13px">Auto range (±8%)</button>'+
-'<div class="g2"><label class="fl">Grids (2–50)<input class="in" id="bGr" inputmode="numeric" value="10"></label>'+
+'<button class="btn dark" id="bAuto" style="height:36px;font-size:13px">Auto range (\u00b18%)</button>'+
+'<div class="g2"><label class="fl">Grids (2\u201350)<input class="in" id="bGr" inputmode="numeric" value="10"></label>'+
 '<label class="fl">Investment (USDT)<input class="in" id="bInv" inputmode="decimal"></label></div>'+
-'<div style="font-size:12px;color:var(--mut2)">Available: <b id="bAv">—</b> USDT</div>'+
+'<div style="font-size:12px;color:var(--mut2)">Available: <b id="bAv">\u2014</b> USDT</div>'+
 '<div id="bPrev" style="font-size:13px;color:var(--soft);line-height:1.6"></div>'+
 '<button class="btn gold" id="bGo">Start bot</button>';
 function auto(){var p=px3(q3('bCoin').value);if(!p)return;q3('bLo').value=+(p*0.92).toPrecision(6);q3('bUp').value=+(p*1.08).toPrecision(6);prev();}
 function prev(){var c=q3('bCoin').value,p=px3(c),lo=+q3('bLo').value,up=+q3('bUp').value,g=parseInt(q3('bGr').value,10),inv=+q3('bInv').value;
-q3('bPx').textContent=p?fp(p)+' USDT':'—';var o=q3('bPrev');
+q3('bPx').textContent=p?fp(p)+' USDT':'\u2014';var o=q3('bPrev');
 if(!(lo>0&&up>lo&&g>=2)){o.innerHTML='';return;}var nb=0;for(var i=0;i<g;i++)if(lo+(up-lo)*i/g<p)nb++;
 var step=(up-lo)/g,pr=(step/lo*100-0.2);
-o.innerHTML='Buy orders now: <b>'+nb+'</b>'+(inv>0&&nb?' · per grid: <b>'+n3(inv/nb)+' USDT</b>':'')+
+o.innerHTML='Buy orders now: <b>'+nb+'</b>'+(inv>0&&nb?' \u00b7 per grid: <b>'+n3(inv/nb)+' USDT</b>':'')+
 '<br>Profit per round: about <b>'+(pr>0?pr.toFixed(2):'0')+'%</b> of each grid (after 0.1% fee on buy and sell)'+
 (p&&(p<=lo||p>=up)?'<br><span style="color:var(--dn)">Price now must be between lower and upper price</span>':'');}
 q3('bCoin').onchange=auto;q3('bAuto').onclick=auto;['bLo','bUp','bGr','bInv'].forEach(function(i){q3(i).oninput=prev;});
@@ -56,8 +56,8 @@ usdt3(function(x){q3('bAv').textContent=n3(x);});}).catch(function(e){say(err3(e
 function botList(){var l=q3('bList');rpc3('nx_bot_my').then(function(d){d=d||[];
 if(!d.length){l.innerHTML='<div class="card" style="font-size:13px;color:var(--mut2)">No bots yet.</div>';return;}
 l.innerHTML=d.map(function(b){var on=b.status==='running';return '<div class="card" style="gap:4px"><div style="display:flex;justify-content:space-between">'+
-'<b>'+esc(b.symbol)+'/USDT · Grid</b><span style="font-size:12px;color:'+(on?'var(--up)':'var(--mut)')+'">'+(on?'Running':'Stopped')+'</span></div>'+
-'<div class="irow"><span style="color:var(--mut2)">Range</span><span>'+fp(b.lower_p)+' – '+fp(b.upper_p)+' · '+b.grids+' grids</span></div>'+
+'<b>'+esc(b.symbol)+'/USDT \u00b7 Grid</b><span style="font-size:12px;color:'+(on?'var(--up)':'var(--mut)')+'">'+(on?'Running':'Stopped')+'</span></div>'+
+'<div class="irow"><span style="color:var(--mut2)">Range</span><span>'+fp(b.lower_p)+' \u2013 '+fp(b.upper_p)+' \u00b7 '+b.grids+' grids</span></div>'+
 '<div class="irow"><span style="color:var(--mut2)">Investment</span><span>'+n3(b.invest)+' USDT</span></div>'+
 '<div class="irow"><span style="color:var(--mut2)">Grid profit</span><b style="color:'+(+b.profit>=0?'var(--up)':'var(--dn)')+'">'+
 n3(b.profit,4)+' USDT</b></div><div class="irow"><span style="color:var(--mut2)">Rounds done</span><span>'+b.rounds+
@@ -105,7 +105,7 @@ b.innerHTML=(f.length?f.map(function(x){var on=x.status==='active';return '<div 
 (on?'<button class="btn dark" style="height:38px;margin-top:6px" onclick="nxCopyStop('+x.id+')">Stop copying</button>':'')+'</div>';}).join('')
 :'<div class="card" style="font-size:13px;color:var(--mut2)">You are not copying anyone yet. Open "Lead traders" and tap Copy.</div>')+
 ((d.log||[]).length?'<div class="sec">Activity</div><div class="card" style="gap:2px">'+d.log.map(function(g){
-return '<div class="irow" style="font-size:12.5px"><span>'+esc(g.kind==='profit'?'Profit · '+g.note:g.kind==='copy'?'Copied · '+g.note:g.kind==='skip'?'Skipped · '+g.note:'Not copied · '+g.note)+
+return '<div class="irow" style="font-size:12.5px"><span>'+esc(g.kind==='profit'?'Profit \u00b7 '+g.note:g.kind==='copy'?'Copied \u00b7 '+g.note:g.kind==='skip'?'Skipped \u00b7 '+g.note:'Not copied \u00b7 '+g.note)+
 '</span><span style="color:var(--mut2)">'+(g.kind==='profit'?n3(g.profit,4)+' USDT':new Date(g.created_at).toLocaleString())+'</span></div>';}).join('')+'</div>':'');})
 .catch(function(e){b.innerHTML='<div class="card">'+esc(err3(e))+'</div>';});}
 window.nxCopyStop=function(id){if(!confirm('Stop copying? Waiting copy orders will be cancelled. Your coins stay in your wallet.'))return;
@@ -118,7 +118,7 @@ b.innerHTML='<div class="card" style="gap:6px"><div class="ct">Earn as a lead tr
 '<div class="irow"><span style="color:var(--mut2)">Followers</span><span>'+m.followers+'</span></div>'+
 '<div class="irow"><span style="color:var(--mut2)">Earned</span><b style="color:var(--up)">'+n3(m.earned,4)+' USDT</b></div>'+
 '<button class="btn dark" style="height:38px;margin-top:6px" onclick="nxLeadStop()">Stop being a lead trader</button></div>':'')+
-'<div class="card" style="gap:10px"><label class="fl">Nickname (3–24 letters)<input class="in" id="lNick" maxlength="24" value="'+esc(m?m.nick:'')+'"></label>'+
+'<div class="card" style="gap:10px"><label class="fl">Nickname (3\u201324 letters)<input class="in" id="lNick" maxlength="24" value="'+esc(m?m.nick:'')+'"></label>'+
 '<label class="fl">About you (optional)<input class="in" id="lBio" maxlength="200" value="'+esc(m?m.bio||'':'')+'"></label>'+
 '<button class="btn gold" onclick="nxLeadGo()">'+(m&&m.active?'Save':'Become a lead trader')+'</button></div>';})
 .catch(function(e){b.innerHTML='<div class="card">'+esc(err3(e))+'</div>';});}
@@ -147,7 +147,7 @@ function keyList(){var l=q3('kList');rpc3('nx_api_key_list').then(function(d){d=
 l.innerHTML=d.length?d.map(function(k){return '<div class="card" style="gap:4px"><div style="display:flex;justify-content:space-between"><b>'+esc(k.label)+'</b>'+
 '<span style="font-size:12px;color:var(--mut2)">'+(k.can_trade?'Read + trade':'Read only')+'</span></div>'+
 '<div style="font-size:12px;word-break:break-all;color:var(--soft)">'+esc(k.api_key)+'</div>'+
-'<div style="font-size:12px;color:var(--mut2)">'+(k.ips?'IPs: '+esc(k.ips)+' · ':'')+'Last used: '+(k.last_used?new Date(k.last_used).toLocaleString():'never')+'</div>'+
+'<div style="font-size:12px;color:var(--mut2)">'+(k.ips?'IPs: '+esc(k.ips)+' \u00b7 ':'')+'Last used: '+(k.last_used?new Date(k.last_used).toLocaleString():'never')+'</div>'+
 '<button class="btn dark" style="height:36px;margin-top:4px" onclick="nxKeyDel('+k.id+')">Delete</button></div>';}).join('')
 :'<div class="card" style="font-size:13px;color:var(--mut2)">No API keys yet.</div>';}).catch(function(e){l.innerHTML='<div class="card">'+esc(err3(e))+'</div>';});}
 window.nxKeyDel=function(id){if(!confirm('Delete this API key? Robots using it will stop.'))return;
@@ -182,6 +182,14 @@ if(t.indexOf('API keys')===0)b.onclick=function(){go('api');};if(t==='Copy tradi
 if(t==='Trading bot')b.onclick=function(){go('bot');};});
 document.querySelectorAll('#dmenu .di').forEach(function(b){var t=b.textContent.trim();
 if(t==='Copy trading')b.dataset.g='copy';if(t==='Trading bot')b.dataset.g='bot';if(t==='API keys')b.dataset.g='api';});}
+/* fees are paid in USDT: show buy fee in USDT and keep room for the fee on the slider */
+if(typeof calc==='function'){var _c3=calc;window.calc=function(w){_c3(w);try{if(side==='buy'){var p=refP(),q=+(q3('tqty').value||0);
+q3('tfee').textContent=(q>0&&p>0)?f2(q*p*SPOTFEE)+' USDT':'\u2014 USDT';}}catch(e){}};}
+if(typeof slide==='function'){var _s3=slide;window.slide=function(){if(side!=='buy'){_s3();return;}var a=avail();if(a==null){_s3();return;}
+var f=+q3('tsl').value/100,t=Math.floor(a*f/(1+SPOTFEE)*1e6)/1e6;q3('ttot').value=t>0?String(t):'';calc('t');};}
+var bd=q3('bids');if(bd&&!q3('mmNote')){var nt=document.createElement('div');nt.id='mmNote';
+nt.style.cssText='font-size:10.5px;color:var(--mut);padding:6px 4px 0;line-height:1.4';
+nt.textContent='Order book includes orders from Nexora Liquidity (our market maker).';bd.parentNode.insertBefore(nt,bd.nextSibling);}
 var sbx=q3('supBox');if(sbx){sbx.setAttribute('translate','no');sbx.classList.add('notranslate');}
 hook();sb.from('nx_pro_settings').select('copy_share').maybeSingle().then(function(r){if(r.data)SHARE=+r.data.copy_share;});
 if(P3[(location.hash||'').slice(1)]){show();setTimeout(route,800);}
