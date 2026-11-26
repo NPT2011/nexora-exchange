@@ -134,9 +134,12 @@ window.addEventListener('hashchange',function(){setTimeout(route,0);});
 if(typeof sb!=='undefined'&&sb)sb.auth.onAuthStateChange(function(){setTimeout(route,600);});
 
 /* point every "Refer & Earn" button to this page */
-function hook(){document.querySelectorAll('#qa .q,#dmenu .di').forEach(function(b){if(b.textContent.trim()==='Refer & Earn')b.dataset.g='ref';});
-var rb=document.querySelector('#p-account .ref');if(rb){var d=rb.querySelectorAll('div div');if(d[1])d[1].textContent='Earn '+pct()+'% of your friends\' trading fees, for life';
-var b=rb.querySelector('button');if(b){b.onclick=function(){go('ref');};}}}
-hook();setTimeout(hook,1500);
+document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('#p-account .ref button');
+if(b){e.preventDefault();e.stopPropagation();go('ref');}},true);
+function hook(){try{document.querySelectorAll('#qa .q,#dmenu .di').forEach(function(b){if(b.textContent.trim()==='Refer & Earn')b.dataset.g='ref';});
+var rb=document.querySelector('#p-account .ref');if(rb){rb.querySelectorAll('div').forEach(function(d){if(!d.children.length&&/^Earn 1/.test(d.textContent))d.textContent='Earn '+pct()+'% of your friends\' trading fees, for life';});
+var b=rb.querySelector('button');if(b){b.removeAttribute('onclick');b.textContent='Invite';}}
+var mr=document.getElementById('myRef');if(mr&&/vercel\.app/.test(mr.textContent)){var m=mr.textContent.match(/ref=([A-Z0-9]+)/);if(m)mr.textContent=link5(m[1]);}}catch(e){}}
+hook();setInterval(hook,1500);
 if((location.hash||'').slice(1)==='ref'){if(typeof show==='function')show();setTimeout(route,800);}
 })();
