@@ -440,5 +440,6 @@ function vAudit(){rpc('nx_admin_audit').then(function(l){$('view').innerHTML=l.m
 'class="k">'+esc(a.admin_email||'')+' · '+esc(a.target||'')+'</div><div class="v" style="font-size:12px;margin-top:4px">'+
 esc(a.details?JSON.stringify(a.details):'')+'</div></div>';}).join('')||'<div class="k">No actions yet.</div>';});}
 </script>
+<script src="admin3.js?v=1"></script>
 </body>
 </html>
