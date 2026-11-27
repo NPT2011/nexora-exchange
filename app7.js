@@ -70,4 +70,35 @@ if(r.error){err(errText(r.error));return;}draw();say('Saved');if(typeof loadMeth
 
 /* keep India settings when P2P pages open */
 window.addEventListener('hashchange',function(){var h=(location.hash||'').slice(1);if(/^p2p/.test(h))setTimeout(india,50);});
+
+/* ---- deposit page: Buy with card (third-party on-ramps) ---- */
+(function(){var box=q7('dAddrBox');if(!box)return;var w=document.createElement('div');w.className='wbox';w.id='dCard';w.style.display='none';
+var notes=q7('dNotes');if(notes&&notes.parentNode)notes.parentNode.insertBefore(w,notes.nextSibling);
+function draw(){var a=q7('dAddr');if(!a){w.style.display='none';return;}var addr=a.textContent.replace(/\s/g,'');
+var coin=(q7('dTitle').textContent||'').replace(/^Deposit\s*/,'')||'USDT',net=(q7('dNetName').textContent||q7('dNetCode').textContent||'').trim();
+w.style.display='flex';w.style.flexDirection='column';w.style.gap='10px';
+w.innerHTML='<div class="ct">Don\'t have '+x7(coin)+'? Buy with card</div>'+
+'<div style="font-size:12.5px;color:var(--mut2);line-height:1.5">Pay with Visa, Mastercard, Apple Pay, Google Pay or bank transfer on a trusted '+
+'third-party service, and the '+x7(coin)+' is sent straight to your Nexora deposit address.</div>'+
+'<div style="font-size:13.5px;line-height:1.7"><b style="color:var(--gold)">1.</b> Open MoonPay or Transak.<br>'+
+'<b style="color:var(--gold)">2.</b> Choose <b>'+x7(coin)+' \u2013 '+x7(net||'the same network')+'</b>.<br>'+
+'<b style="color:var(--gold)">3.</b> Paste this address as the receiving wallet address:</div>'+
+'<div style="display:flex;gap:8px;align-items:center;background:var(--bg);border:1px dashed rgba(230,180,80,.5);border-radius:10px;padding:10px">'+
+'<span style="flex:1;min-width:0;font-size:12.5px;word-break:break-all">'+x7(addr)+'</span><button type="button" class="btn gold" '+
+'style="height:32px;padding:0 12px;font-size:12.5px;flex:none" onclick="cp(\''+x7(addr)+'\')">Copy</button></div>'+
+'<div class="g2"><a class="btn dark" style="display:flex;align-items:center;justify-content:center;text-decoration:none" target="_blank" rel="noopener" '+
+'href="https://www.moonpay.com/buy">Open MoonPay</a><a class="btn dark" style="display:flex;align-items:center;justify-content:center;'+
+'text-decoration:none" target="_blank" rel="noopener" href="https://global.transak.com/">Open Transak</a></div>'+
+'<div style="font-size:12px;color:#FF6B7A;line-height:1.5">Choose exactly the same network ('+x7(net||'shown above')+'). '+
+'A different network can lose your funds. After it arrives, tap "I have sent it" and paste the TxID. '+
+'These services are run by other companies; their fees and checks apply.</div>';}
+new MutationObserver(function(){setTimeout(draw,50);}).observe(box,{childList:true,subtree:true});draw();})();
+
+/* ---- withdraw page: crypto address only ---- */
+(function(){var pg=q7('p-withdraw');if(!pg||q7('wCryptoOnly'))return;var n=document.createElement('div');n.id='wCryptoOnly';
+n.style.cssText='font-size:12.5px;line-height:1.5;color:var(--soft);background:rgba(230,180,80,.08);border:1px solid rgba(230,180,80,.35);'+
+'border-radius:10px;padding:10px 12px';
+n.textContent='Withdrawals are sent only to a crypto wallet address on the network you choose. Withdrawals to cards or bank accounts are not supported. '+
+'Make sure the receiving wallet supports the same network, or your funds can be lost.';
+var h=pg.querySelector('h1');if(h&&h.nextSibling)pg.insertBefore(n,h.nextSibling);else pg.appendChild(n);})();
 })();
