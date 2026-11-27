@@ -74,6 +74,12 @@ window.addEventListener('hashchange',function(){var h=(location.hash||'').slice(
 /* ---- deposit page: Buy with card (third-party on-ramps) ---- */
 (function(){var box=q7('dAddrBox');if(!box)return;var w=document.createElement('div');w.className='wbox';w.id='dCard';w.style.display='none';
 var notes=q7('dNotes');if(notes&&notes.parentNode)notes.parentNode.insertBefore(w,notes.nextSibling);
+function netList(coin,net){var all=[];try{all=(window.NETS||[]).filter(function(x){return x.asset===coin&&x.deposit_address;}).map(function(x){
+var nn=(window.NETN||{})[x.network];return nn&&nn[1]?nn[1]:x.network;});}catch(e){}
+var t='You selected <b>'+x7(net||'this network')+'</b>. On MoonPay or Transak choose exactly <b>'+x7(coin)+' \u2013 '+x7(net||'the same network')+
+'</b>, so the '+x7(coin)+' arrives on the same network.';
+if(all.length>1)t+=' You can also deposit '+x7(coin)+' on: <b>'+all.map(x7).join(', ')+'</b>. To use another network, change the Network at the top of this page first, then copy the new address.';
+return t+' A different network can lose your funds. After it arrives, tap "I have sent it" and paste the TxID. MoonPay and Transak are run by other companies; their fees and checks apply.';}
 function draw(){var a=q7('dAddr');if(!a){w.style.display='none';return;}var addr=a.textContent.replace(/\s/g,'');
 var coin=(q7('dTitle').textContent||'').replace(/^Deposit\s*/,'')||'USDT',net=(q7('dNetName').textContent||q7('dNetCode').textContent||'').trim();
 w.style.display='flex';w.style.flexDirection='column';w.style.gap='10px';
@@ -89,9 +95,7 @@ w.innerHTML='<div class="ct">Don\'t have '+x7(coin)+'? Buy with card</div>'+
 '<div class="g2"><a class="btn dark" style="display:flex;align-items:center;justify-content:center;text-decoration:none" target="_blank" rel="noopener" '+
 'href="https://www.moonpay.com/buy">Open MoonPay</a><a class="btn dark" style="display:flex;align-items:center;justify-content:center;'+
 'text-decoration:none" target="_blank" rel="noopener" href="https://global.transak.com/">Open Transak</a></div>'+
-'<div style="font-size:12px;color:#FF6B7A;line-height:1.5">Choose exactly the same network ('+x7(net||'shown above')+'). '+
-'A different network can lose your funds. After it arrives, tap "I have sent it" and paste the TxID. '+
-'These services are run by other companies; their fees and checks apply.</div>';}
+'<div style="font-size:12.5px;color:#FF6B7A;line-height:1.6">'+netList(coin,net)+'</div>';}
 new MutationObserver(function(){setTimeout(draw,50);}).observe(box,{childList:true,subtree:true});draw();})();
 
 /* ---- withdraw page: crypto address only ---- */
