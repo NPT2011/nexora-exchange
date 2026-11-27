@@ -144,3 +144,8 @@ var mr=document.getElementById('myRef');if(mr&&/vercel\.app/.test(mr.textContent
 hook();setInterval(hook,1500);
 if((location.hash||'').slice(1)==='ref'){if(typeof show==='function')show();setTimeout(route,800);}
 })();
+/* Referral link opens the Sign Up page directly (only for visitors who are not logged in) */
+(function(){try{var rq=new URLSearchParams(location.search).get('ref');if(!rq)return;
+setTimeout(function(){try{if(typeof sb==='undefined'||!sb){if(typeof openAuth==='function')openAuth('up');return;}
+sb.auth.getSession().then(function(r){var s=r&&r.data&&r.data.session;if(!s&&typeof openAuth==='function'){openAuth('up');
+var i=document.querySelector('#aForm [name=ref]');if(i&&!i.value)i.value=rq.toUpperCase();}});}catch(e){}},700);}catch(e){}})();
